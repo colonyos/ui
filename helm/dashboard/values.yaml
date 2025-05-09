@@ -1,0 +1,15 @@
+# General settings
+Timezone: "Europe/Stockholm"
+
+Ingress: true 
+ExposeNodePort: false
+NodePort: 30000  # must be in range 30000-32767 
+# IngressController: nginx
+IngressController: traefik 
+DashboardHostname: "dashboard.colonyos.io"
+
+DashboardImage: "colonyos/dashboard:v1.0.3"
+
+DashboardResourceLimit: false
+DashboardCPU: "1000m"
+DashboardMemory: "8Gi"

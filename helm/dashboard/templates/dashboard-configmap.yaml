@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-config
+  labels:
+    app: dashboard 
+data:
+  TZ: {{ .Values.Timezone | quote }}

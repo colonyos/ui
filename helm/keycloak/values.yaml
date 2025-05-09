@@ -1,0 +1,28 @@
+Ingress: true 
+IngressController: "traefik"
+IngressPathType: Prefix
+CertManager: true 
+
+Namespace: "keycloak"
+StorageClassName: longhorn
+Timezone: "Europe/Stockholm"
+
+KeycloakHostname: "keycloak.colonyos.io"
+KeycloakURL: "https://keycloak.colonyos.io"
+KeycloakStorage: 5Gi
+KeycloakReplicas: 1 
+# KeycloakImage: "quay.io/keycloak/keycloak:22.0.3"
+KeycloakImage: "colonyos/keycloak"
+KeycloakResourceLimit: false 
+KeycloakCPU: "3000m" 
+KeycloakMemory: "10000Mi" 
+KeycloakAdmin: "admin"
+KeycloakAdminPassword: "XXXXXXXXXXXXXXXXXXXXXXXXX"
+DBHost: "postgres-service"
+DBUser: "keycloak"
+DBPassword: "XXXXXXXXXXXXXXXXXXXXXXX"
+DBImage: "postgres:13.4-alpine"
+DBResourceLimit: false
+DBCPU: "3000m"
+DBMemory: "10000Mi"
+DBStorage: 5Gi

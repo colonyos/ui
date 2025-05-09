@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-deployment
+  labels:
+    app: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard 
+  template:
+     metadata:
+       labels:
+          app: dashboard 
+     spec:
+         containers:
+           - name: notebook
+             image: {{ .Values.DashboardImage | quote }} 
+             imagePullPolicy: "Always"
+             ports:
+               - containerPort: 3000 
+             envFrom:
+               - configMapRef:
+                   name: dashboard-config
+             resources:
+               limits:
+                 {{ if .Values.DashboardResourceLimit }}
+                 memory: {{ (.Values.DashboardMemory | quote) }}
+                 {{ end }}
+               requests:
+                 {{ if .Values.DashboardResourceLimit }}
+                 cpu: {{ (.Values.DashboardCPU | quote) }}
+                 memory: {{ (.Values.DashboardMemory | quote) }}
+                 {{ end }}
