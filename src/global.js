@@ -1,0 +1,23 @@
+export let global = {
+    colonyName: "",
+    colonyPrvKey: "",
+    executorId: "",
+    executorPrvKey: "",
+    serverId: "",
+    serverPrvKey: "",
+    host: "",
+    port: "",
+    tls: "",
+    username: "",
+    firstname: "",
+    lastlame: "",
+    email: "",
+    awsS3Endpoint: "",
+    awsS3Accesskey: "",
+    awsS3Secretkey: "",
+    awsS3Region: "",
+    awsS3Bucket: "",
+    awsS3TLS: "",
+    awsS3SkipVerify: "",
+    colonies: null
+};
