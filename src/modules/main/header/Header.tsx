@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleControlSidebar, toggleSidebarMenu } from '@app/store/reducers/ui';
-import UserDropdown from '@app/modules/main/header/user-dropdown/UserDropdown';
 
 const Header = () => {
     const [t] = useTranslation();
@@ -39,9 +38,6 @@ const Header = () => {
                         <i className="fas fa-bars" />
                     </button>
                 </li>
-            </ul>
-            <ul className="navbar-nav ml-auto">
-                <UserDropdown />
             </ul>
         </nav>
     );

@@ -159,14 +159,9 @@ class Page extends Component {
     componentDidMount() {
         let api = global.colonies
 
-        console.log(global.error)
-        if (global.error != "") {
-            this.setHeading("Failed to connect to Colonies server")
-            this.setMessage(global.error)
-            this.setShow(true);
-        }
-
         api.load().then(() => {
+	    console.log("XXXXXXXXXXXXXXXXXXXXXXXXXX")        
+	    console.log(global)
             api.getColonyStats(global.colonyName, global.executorPrvKey).then((stats) => {
                 this.setState({ stats: stats })
             })

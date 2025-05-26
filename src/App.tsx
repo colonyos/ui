@@ -25,8 +25,6 @@ import FileTab from '@pages/FileTab';
 import SnapshotTab from '@pages/SnapshotTab';
 import Profile from '@pages/Profile';
 import PrivateRoute from './routes/PrivateRoute';
-import keycloak from './keycloak'
-import { ReactKeycloakProvider } from '@react-keycloak/web'
 
 const App = () => {
     const windowSize = useWindowSize();
@@ -41,7 +39,6 @@ const App = () => {
     }, [windowSize]);
 
     return (
-        <ReactKeycloakProvider authClient={keycloak}>
             <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<PrivateRoute />}>
@@ -78,7 +75,6 @@ const App = () => {
                     pauseOnHover
                 />
             </BrowserRouter>
-        </ReactKeycloakProvider >
     );
 };
 
