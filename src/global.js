@@ -1,3 +1,5 @@
+import ColonyEndpoint from './colonies/colonies.js'
+
 export let global = {
     colonyName: "",
     colonyPrvKey: "",
@@ -6,8 +8,8 @@ export let global = {
     serverId: "",
     serverPrvKey: "",
     host: "",
-    port: "",
-    tls: "",
+    port: "443",
+    tls: "true",
     username: "",
     firstname: "",
     lastlame: "",
@@ -19,5 +21,7 @@ export let global = {
     awsS3Bucket: "",
     awsS3TLS: "",
     awsS3SkipVerify: "",
-    colonies: null
+    colonies: null,
 };
+
+global.colonies = new ColonyEndpoint(global.host, global.port)
