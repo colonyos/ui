@@ -1,0 +1,316 @@
+<script lang="ts">
+	import type { Generator } from '$lib/types/generator';
+	import { ColonyClient } from '$lib/api/colony';
+	import { getGeneratorTriggerLabel, getGeneratorStatus } from '$lib/types/generator';
+
+	interface Props {
+		show: boolean;
+		generator: Generator | null;
+		client: ColonyClient | null;
+		onClose: () => void;
+	}
+
+	let { show, generator, client, onClose }: Props = $props();
+
+	interface GeneratorDetails {
+		generatorid?: string;
+		initiatorid?: string;
+		initiatorname?: string;
+		colonyname?: string;
+		name?: string;
+		workflowspec?: string;
+		trigger?: number;
+		timeout?: number;
+		firstpack?: string;
+		lastrun?: string;
+		queuesize?: number;
+		checkerperiod?: number;
+	}
+
+	interface WorkflowSpec {
+		colonyname?: string;
+		functionspecs?: FunctionSpec[];
+	}
+
+	interface FunctionSpec {
+		nodename?: string;
+		funcname?: string;
+		args?: any;
+		kwargs?: any;
+		priority?: number;
+		maxwaittime?: number;
+		maxexectime?: number;
+		maxretries?: number;
+		conditions?: any;
+		label?: string;
+		fs?: any;
+		env?: any;
+	}
+
+	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
+	let loadingError = $state('');
+	let generatorDetails: GeneratorDetails | null = $state(null);
+	let workflowSpec: WorkflowSpec | null = $state(null);
+
+	$effect(() => {
+		if (show && generator && client) {
+			loadGeneratorDetails();
+		}
+	});
+
+	async function loadGeneratorDetails() {
+		if (!generator || !client) return;
+
+		loadingStatus = 'loading';
+		loadingError = '';
+		generatorDetails = null;
+
+		try {
+			const result = await client.getGenerator(generator.generatorid);
+			generatorDetails = result;
+			
+			// Parse the workflow spec if it exists
+			if (result.workflowspec) {
+				try {
+					workflowSpec = JSON.parse(result.workflowspec);
+				} catch (parseError) {
+					console.warn('Failed to parse workflowspec:', parseError);
+					workflowSpec = null;
+				}
+			}
+			
+			loadingStatus = 'success';
+		} catch (error) {
+			console.error('Failed to load generator details:', error);
+			loadingError = error instanceof Error ? error.message : String(error);
+			loadingStatus = 'error';
+		}
+	}
+
+	function formatDuration(seconds: number): string {
+		if (seconds === 0 || seconds === -1) return 'No limit';
+		if (seconds < 60) return `${seconds}s`;
+		if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+		const hours = Math.floor(seconds / 3600);
+		const minutes = Math.floor((seconds % 3600) / 60);
+		return `${hours}h ${minutes}m`;
+	}
+
+	function handleBackdropClick(event: MouseEvent) {
+		if (event.target === event.currentTarget) {
+			onClose();
+		}
+	}
+
+	function formatDate(dateString: string): string {
+		if (!dateString || dateString.startsWith('0001-01-01T00:')) {
+			return 'Never';
+		}
+		try {
+			return new Date(dateString).toLocaleString();
+		} catch {
+			return dateString;
+		}
+	}
+</script>
+
+{#if show}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={handleBackdropClick} onkeydown={(e) => e.key === 'Escape' && onClose()}>
+		<div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+			<!-- Header -->
+			<div class="px-6 py-4 border-b border-gray-200">
+				<div class="flex justify-between items-start">
+					<div>
+						<h3 class="text-lg font-semibold text-gray-900">Generator Details</h3>
+						{#if generator}
+							<p class="text-sm text-gray-600 mt-1">{generator.name}</p>
+							<p class="text-xs text-gray-400 font-mono">{generator.generatorid}</p>
+						{/if}
+					</div>
+					<button
+						onclick={onClose}
+						aria-label="Close modal"
+						class="text-gray-400 hover:text-gray-600 transition-colors"
+					>
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Content -->
+			<div class="px-6 py-4 overflow-y-auto max-h-[60vh]">
+				{#if loadingStatus === 'loading'}
+					<div class="flex items-center justify-center py-8">
+						<div class="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
+						<span class="text-gray-600">Loading generator details...</span>
+					</div>
+				{:else if loadingStatus === 'error'}
+					<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+						<strong>Error:</strong> {loadingError}
+					</div>
+				{:else if loadingStatus === 'success' && generatorDetails}
+					<div class="space-y-6">
+						<!-- Basic Information -->
+						<div>
+							<h4 class="text-md font-medium text-gray-900 mb-3">Basic Information</h4>
+							<div class="bg-gray-50 rounded-lg p-4 space-y-2">
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+									<div>
+										<span class="font-medium text-gray-700">Name:</span>
+										<span class="text-gray-900 ml-2">{generatorDetails.name}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700">Colony:</span>
+										<span class="text-gray-900 ml-2">{generatorDetails.colonyname}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700">Trigger Threshold:</span>
+										<span class="text-gray-900 ml-2">{getGeneratorTriggerLabel(generatorDetails.trigger || 0)}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700">Initiator:</span>
+										<span class="text-gray-900 ml-2">{generatorDetails.initiatorname}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700">First Pack:</span>
+										<span class="text-gray-900 ml-2">{formatDate(generatorDetails.firstpack || '')}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700">Last Run:</span>
+										<span class="text-gray-900 ml-2">{formatDate(generatorDetails.lastrun || '')}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Configuration -->
+						<div>
+							<h4 class="text-md font-medium text-gray-900 mb-3">Configuration</h4>
+							<div class="bg-blue-50 rounded-lg p-4 space-y-3">
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+									<div>
+										<span class="font-medium text-blue-700">Timeout:</span>
+										<span class="text-blue-900 ml-2">{formatDuration(generatorDetails.timeout || 0)}</span>
+									</div>
+									<div>
+										<span class="font-medium text-blue-700">Queue Size:</span>
+										<span class="text-blue-900 ml-2">{generatorDetails.queuesize || 0}</span>
+									</div>
+									<div>
+										<span class="font-medium text-blue-700">Checker Period:</span>
+										<span class="text-blue-900 ml-2">{generatorDetails.checkerperiod ? formatDuration(generatorDetails.checkerperiod / 1000) : 'Not set'}</span>
+									</div>
+									<div>
+										<span class="font-medium text-blue-700">Status:</span>
+										<span class="text-blue-900 ml-2">{getGeneratorStatus(generatorDetails.lastrun || '', generatorDetails.timeout || 0).label}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Function Specifications -->
+						{#if workflowSpec && workflowSpec.functionspecs && workflowSpec.functionspecs.length > 0}
+							<div>
+								<h4 class="text-md font-medium text-gray-900 mb-3">Function Specifications</h4>
+								<div class="space-y-4">
+									{#each workflowSpec.functionspecs as funcSpec, i}
+										<div class="bg-green-50 rounded-lg p-4">
+											<h5 class="font-medium text-green-800 mb-3">Function {i + 1}</h5>
+											<div class="space-y-3 text-sm">
+												<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+													<div>
+														<span class="font-medium text-green-700">Node Name:</span>
+														<span class="text-green-900 ml-2">{funcSpec.nodename || 'Not set'}</span>
+													</div>
+													<div>
+														<span class="font-medium text-green-700">Function Name:</span>
+														<span class="text-green-900 ml-2">{funcSpec.funcname || 'Not set'}</span>
+													</div>
+													<div>
+														<span class="font-medium text-green-700">Label:</span>
+														<span class="text-green-900 ml-2">{funcSpec.label || 'Not set'}</span>
+													</div>
+													<div>
+														<span class="font-medium text-green-700">Priority:</span>
+														<span class="text-green-900 ml-2">{funcSpec.priority !== undefined ? funcSpec.priority : 'Not set'}</span>
+													</div>
+												</div>
+												
+												<!-- Execution Limits -->
+												<div class="border-t border-green-200 pt-3">
+													<h6 class="font-medium text-green-800 mb-2">Execution Limits</h6>
+													<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+														<div>
+															<span class="font-medium text-green-700">Max Wait:</span>
+															<div class="text-green-900">{funcSpec.maxwaittime ? formatDuration(funcSpec.maxwaittime) : 'Not set'}</div>
+														</div>
+														<div>
+															<span class="font-medium text-green-700">Max Exec:</span>
+															<div class="text-green-900">{funcSpec.maxexectime ? formatDuration(funcSpec.maxexectime) : 'Not set'}</div>
+														</div>
+														<div>
+															<span class="font-medium text-green-700">Max Retries:</span>
+															<div class="text-green-900">{funcSpec.maxretries !== undefined ? funcSpec.maxretries : 'Not set'}</div>
+														</div>
+													</div>
+												</div>
+
+												<!-- Arguments -->
+												{#if funcSpec.args}
+													<div class="border-t border-green-200 pt-3">
+														<span class="font-medium text-green-700">Arguments:</span>
+														<div class="mt-1 bg-white rounded border p-2 text-xs">
+															<pre class="text-green-900 font-mono whitespace-pre-wrap">{JSON.stringify(funcSpec.args, null, 2)}</pre>
+														</div>
+													</div>
+												{/if}
+
+												<!-- Keyword Arguments -->
+												{#if funcSpec.kwargs && Object.keys(funcSpec.kwargs).length > 0}
+													<div class="border-t border-green-200 pt-3">
+														<span class="font-medium text-green-700">Keyword Arguments:</span>
+														<div class="mt-1 bg-white rounded border p-2 text-xs">
+															<pre class="text-green-900 font-mono whitespace-pre-wrap">{JSON.stringify(funcSpec.kwargs, null, 2)}</pre>
+														</div>
+													</div>
+												{/if}
+
+												<!-- Conditions -->
+												{#if funcSpec.conditions}
+													<div class="border-t border-green-200 pt-3">
+														<span class="font-medium text-green-700">Conditions:</span>
+														<div class="mt-1 bg-white rounded border p-2 text-xs">
+															<pre class="text-green-900 font-mono whitespace-pre-wrap">{JSON.stringify(funcSpec.conditions, null, 2)}</pre>
+														</div>
+													</div>
+												{/if}
+											</div>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<div class="text-center py-8 text-gray-500">
+						No details available
+					</div>
+				{/if}
+			</div>
+
+			<!-- Footer -->
+			<div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+				<div class="flex justify-end">
+					<button
+						onclick={onClose}
+						class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+					>
+						Close
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
