@@ -1,19 +1,12 @@
 # Colonies Dashboard
 
-A modern web interface for managing Colony distributed computing resources, built with SvelteKit 2.x and Svelte 5.
+A web interface for managing Colonies, built with SvelteKit 2.x and Svelte 5.
+
+This was made with claude code.
 
 ## Description
 
-The Colonies Dashboard provides a comprehensive management interface for Colony distributed computing infrastructure. It enables users to monitor and control various Colony resources including:
-
-- **Executors**: View hardware specifications, capabilities, and manage compute resources
-- **Processes**: Monitor running jobs, view detailed execution information, and manage process lifecycle
-- **Cron Jobs**: Schedule and manage automated tasks with detailed execution tracking
-- **Functions**: Browse available functions and their specifications per executor
-- **Workflows**: View process graphs and workflow execution status
-- **Generators**: Manage data generation and processing pipelines
-
-The dashboard communicates with Colony servers through secure RPC calls using cryptographic authentication, supporting multiple authentication contexts (server, colony, executor, user) for different operations.
+The Colonies Dashboard provides a graphical interface for ColonyOS infrastructure. It enables users to visualize and limited control of resources.
 
 ## Features
 
@@ -145,4 +138,3 @@ Additional optional configuration variables:
 - `COLONIES_EXECUTOR_ID`: Executor identifier
 - `COLONIES_USERNAME`: User name
 - `COLONIES_AWS_S3_*`: AWS S3 configuration for file storage
-

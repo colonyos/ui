@@ -69,26 +69,34 @@
 		workflows = [];
 
 		try {
-			console.log('=== Fetching workflows list ===');
+			console.log('=== Fetching workflows list (all states) ===');
 			console.log('Colony:', colonyName);
 
-			const response = await colonyClient.getProcessGraphs(colonyName);
-			console.log('=== getProcessGraphs Response ===');
-			console.log('Full response:', JSON.stringify(response, null, 2));
+			// Fetch workflows for all states: WAITING (0), RUNNING (1), SUCCESS (2), FAILED (3)
+			const states = [0, 1, 2, 3];
+			const allWorkflows: ProcessGraph[] = [];
 
-			if (response && response.processgraphs && Array.isArray(response.processgraphs)) {
-				workflows = response.processgraphs;
-				console.log(`Found ${workflows.length} workflows`);
-				loadingStatus = 'success';
-			} else if (response && Array.isArray(response)) {
-				// Handle case where response is directly an array
-				workflows = response;
-				console.log(`Found ${workflows.length} workflows`);
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Invalid response format from server';
-				loadingStatus = 'error';
+			for (const state of states) {
+				try {
+					const response = await colonyClient.getProcessGraphs(colonyName, 100, state);
+					console.log(`=== getProcessGraphs Response for state ${state} ===`);
+					console.log('Response:', JSON.stringify(response, null, 2));
+
+					if (response && response.processgraphs && Array.isArray(response.processgraphs)) {
+						allWorkflows.push(...response.processgraphs);
+					} else if (response && Array.isArray(response)) {
+						// Handle case where response is directly an array
+						allWorkflows.push(...response);
+					}
+				} catch (error) {
+					console.warn(`Failed to fetch workflows for state ${state}:`, error);
+					// Continue with other states even if one fails
+				}
 			}
+
+			workflows = allWorkflows;
+			console.log(`Found ${workflows.length} total workflows across all states`);
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load workflows:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
@@ -139,6 +147,40 @@
 		graphLoadingStatus = 'idle';
 	}
 
+	let isRemoving = false;
+	let showRemoveConfirm = false;
+
+	async function removeWorkflow() {
+		if (!colonyClient || !selectedWorkflow) {
+			return;
+		}
+
+		isRemoving = true;
+		try {
+			console.log('Removing workflow:', selectedWorkflow.processgraphid);
+			await colonyClient.removeProcessGraph(selectedWorkflow.processgraphid);
+			console.log('Workflow removed successfully');
+
+			// Go back to list and reload workflows
+			backToList();
+			await loadWorkflows();
+		} catch (error) {
+			console.error('Failed to remove workflow:', error);
+			alert('Failed to remove workflow: ' + (error instanceof Error ? error.message : String(error)));
+		} finally {
+			isRemoving = false;
+			showRemoveConfirm = false;
+		}
+	}
+
+	function confirmRemove() {
+		showRemoveConfirm = true;
+	}
+
+	function cancelRemove() {
+		showRemoveConfirm = false;
+	}
+
 	function getWorkflowStateLabel(state: number): string {
 		switch (state) {
 			case 0: return 'Waiting';
@@ -173,30 +215,30 @@
 
 <div class="space-y-6">
 	<div>
-		<h1 class="text-3xl font-bold text-gray-900">Workflows</h1>
-		<p class="mt-2 text-gray-600">
-			{selectedWorkflow ? 'Workflow DAG visualization' : 'Manage and visualize workflow process graphs'}
-		</p>
+		<h1 class="page-title">Workflows</h1>
 	</div>
 
 	{#if !selectedWorkflow}
 		<!-- Workflows List View -->
-		<div class="bg-white rounded-lg border border-gray-200">
-			<div class="px-6 py-4 border-b border-gray-200">
+		<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
+			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
 				<div class="flex justify-between items-center">
-					<h2 class="text-lg font-semibold text-gray-900">Process Graphs</h2>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Process Graphs</h2>
 					<button
 						on:click={loadWorkflows}
 						disabled={loadingStatus === 'loading'}
-						class="text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1.5 rounded transition-colors"
+						class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+						title="Refresh"
 					>
-						{loadingStatus === 'loading' ? 'Loading...' : 'Refresh'}
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						</svg>
 					</button>
 				</div>
 			</div>
 
 			{#if loadingStatus === 'loading'}
-				<div class="flex items-center justify-center py-12 text-gray-500">
+				<div class="flex items-center justify-center py-12 text-gray-500 dark:text-slate-300">
 					<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
 					Loading workflows...
 				</div>
@@ -207,43 +249,43 @@
 					</div>
 				</div>
 			{:else if workflows.length === 0}
-				<div class="p-12 text-center text-gray-500">
+				<div class="p-12 text-center text-gray-500 dark:text-slate-300">
 					No workflows found. Create a workflow to see it here.
 				</div>
 			{:else}
 				<div class="overflow-x-auto">
 					<table class="w-full">
-						<thead>
-							<tr class="bg-gray-50 border-b border-gray-200">
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<thead class="bg-gray-50 dark:bg-slate-600">
+							<tr class="border-b border-gray-200 dark:border-slate-600">
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
 									Workflow ID
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
 									Initiator
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
 									Status
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
 									Processes
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
 									Submitted
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
 									Actions
 								</th>
 							</tr>
 						</thead>
-						<tbody class="bg-white divide-y divide-gray-200">
+						<tbody class="bg-white dark:bg-slate-700 divide-y divide-gray-200 dark:divide-slate-600">
 							{#each workflows as workflow}
-								<tr class="hover:bg-gray-50 transition-colors">
+								<tr class="hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
 									<td class="px-6 py-4 whitespace-nowrap">
-										<span class="font-mono text-xs text-gray-600">
+										<span class="font-mono text-xs text-gray-600 dark:text-slate-300">
 											{workflow.processgraphid.substring(0, 12)}...
 										</span>
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
 										{workflow.initiatorname || '-'}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
@@ -251,10 +293,10 @@
 											{getWorkflowStateLabel(workflow.state)}
 										</span>
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
 										{workflow.processids?.length || 0}
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
 										{formatTime(workflow.submissiontime)}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
@@ -274,28 +316,72 @@
 		</div>
 	{:else}
 		<!-- Workflow Detail View with DAG -->
-		<div class="bg-white rounded-lg border border-gray-200 p-6">
+		<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-6">
 			<div class="flex items-center justify-between mb-6">
 				<button
 					on:click={backToList}
-					class="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+					class="flex items-center text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors"
 				>
 					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
 					Back to workflows
 				</button>
-				<button
-					on:click={() => selectWorkflow(selectedWorkflow)}
-					disabled={graphLoadingStatus === 'loading'}
-					class="text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1.5 rounded transition-colors"
-				>
-					{graphLoadingStatus === 'loading' ? 'Loading...' : 'Refresh'}
-				</button>
+				<div class="flex gap-2">
+					<button
+						on:click={() => selectWorkflow(selectedWorkflow)}
+						disabled={graphLoadingStatus === 'loading'}
+						class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+						title="Refresh"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						</svg>
+					</button>
+					<button
+						on:click={confirmRemove}
+						disabled={isRemoving}
+						class="text-sm bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-3 py-1.5 rounded transition-colors"
+					>
+						Delete Workflow
+					</button>
+				</div>
 			</div>
 
+			<!-- Confirmation Dialog -->
+			{#if showRemoveConfirm}
+				<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={cancelRemove}>
+					<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" on:click={(e) => e.stopPropagation()}>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm Workflow Deletion</h3>
+						<p class="text-gray-600 mb-6">
+							Are you sure you want to delete this workflow?
+							<br><br>
+							<span class="font-mono text-sm text-gray-700">ID: {selectedWorkflow?.processgraphid.substring(0, 20)}...</span>
+							<br><br>
+							This action cannot be undone.
+						</p>
+						<div class="flex justify-end gap-3">
+							<button
+								on:click={cancelRemove}
+								disabled={isRemoving}
+								class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 dark:bg-slate-800 rounded transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								on:click={removeWorkflow}
+								disabled={isRemoving}
+								class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 rounded transition-colors"
+							>
+								{isRemoving ? 'Deleting...' : 'Delete Workflow'}
+							</button>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			{#if graphLoadingStatus === 'loading'}
-				<div class="flex items-center justify-center py-12 text-gray-500">
+				<div class="flex items-center justify-center py-12 text-gray-500 dark:text-slate-300">
 					<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
 					Loading workflow graph...
 				</div>

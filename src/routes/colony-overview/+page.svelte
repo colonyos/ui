@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import StaticColonyDiagram from '$lib/components/StaticColonyDiagram.svelte';
+	import ColonyOverview from '$lib/components/ColonyOverview.svelte';
 	import type { ColonyGraphData, GraphNode, ColonyServer, ColonyExecutor } from '$lib/types/colony-graph';
+	import type { ColonyOverviewData, ExecutorNode, ProcessInfo, ColonyStatistics } from '$lib/types/overview';
 	import { transformColonyAPIToGraphData, createSampleColonyData } from '$lib/utils/colony-data-transformer';
-	import { ColonyClient, ColonyEndpoint } from '$lib/api/colony';
+	import { ColonyClient, ColonyEndpoint, PROCESS_STATE_NOTSET } from '$lib/api/colony';
+	import { ProcessState } from '$lib/types/process';
 	import { appState } from '$lib/stores/appState';
 	import Crypto from '$lib/crypto/crypto.js';
 
 	let graphData: ColonyGraphData = $state(createSampleColonyData());
+	let overviewData: ColonyOverviewData | null = $state(null);
 	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
 	let loadingError = $state('');
 	let selectedNode: GraphNode | null = $state(null);
@@ -15,6 +19,8 @@
 
 	// Display options
 	let autoRefresh = $state(false);
+	let refreshIntervalDuration = $state(10000);
+	let activeView: 'diagram' | 'details' = $state('details');
 
 	async function loadColonyData() {
 		loadingStatus = 'loading';
@@ -31,14 +37,12 @@
 			let colonies: any[] = [];
 			let executors: any[] = [];
 			let processes: any[] = [];
-			let serverStatus: any = null;
 
-			// Use server key for getting colonies and server status
+			// Use server key for getting colonies
 			if ($appState.serverPrvKey) {
 				client.setPrivateKey($appState.serverPrvKey, 'server');
 				try {
 					colonies = await client.getColonies();
-					serverStatus = await client.getServerStatus();
 				} catch (e) {
 					console.warn('Failed to get server data:', e);
 				}
@@ -68,7 +72,7 @@
 			}
 
 			// Transform API data to graph format
-			const apiData = { colonies, executors, processes, serverStatus };
+			const apiData = { colonies, executors, processes };
 			const transformedData = transformColonyAPIToGraphData(apiData);
 
 			// Use sample data if no real data is available
@@ -77,6 +81,85 @@
 				graphData = createSampleColonyData();
 			} else {
 				graphData = transformedData;
+			}
+
+			// Also prepare detailed overview data
+			if (colonies.length > 0 && executors.length > 0) {
+				const colonyName = colonies[0]?.name || 'Unknown Colony';
+
+				// Transform processes
+				const processInfos: ProcessInfo[] = processes.map((proc: any) => ({
+					id: proc.processid || '',
+					functionName: proc.spec?.funcname || proc.spec?.functionname || 'Unknown',
+					state: proc.state ?? -1,
+					executorId: proc.assignedexecutorid || undefined,
+					executorName: proc.assignedexecutorname || undefined,
+					submissionTime: proc.submissiontime,
+					startTime: proc.starttime,
+					endTime: proc.endtime
+				}));
+
+				// Calculate statistics
+				const statistics: ColonyStatistics = {
+					totalProcesses: processInfos.length,
+					waitingProcesses: processInfos.filter(p => p.state === ProcessState.WAITING).length,
+					runningProcesses: processInfos.filter(p => p.state === ProcessState.RUNNING).length,
+					successfulProcesses: processInfos.filter(p => p.state === ProcessState.SUCCESS).length,
+					failedProcesses: processInfos.filter(p => p.state === ProcessState.FAILED).length
+				};
+
+				// Count processes per executor
+				const executorProcessCounts = new Map<string, { running: number; assigned: number }>();
+				processInfos.forEach(proc => {
+					if (proc.executorId) {
+						const current = executorProcessCounts.get(proc.executorId) || { running: 0, assigned: 0 };
+						current.assigned++;
+						if (proc.state === ProcessState.RUNNING) {
+							current.running++;
+						}
+						executorProcessCounts.set(proc.executorId, current);
+					}
+				});
+
+				// Transform executors
+				const executorNodes: ExecutorNode[] = executors.map((exec: any) => {
+					const execId = exec.executorid || exec.id || '';
+					const processCounts = executorProcessCounts.get(execId) || { running: 0, assigned: 0 };
+
+					let state: 'idle' | 'busy' | 'offline' = 'idle';
+					if (processCounts.running > 0) {
+						state = 'busy';
+					} else if (exec.state) {
+						state = exec.state;
+					}
+
+					return {
+						id: execId,
+						name: exec.executorname || exec.name || 'Unknown',
+						type: exec.executortype || exec.type || 'unknown',
+						state: state,
+						colonyName: exec.colonyname || colonyName,
+						lastSeen: exec.lastheardtime || exec.lastSeen,
+						cpu: exec.cpu,
+						memory: exec.mem || exec.memory,
+						capabilities: exec.capabilities || [],
+						assignedProcesses: processCounts.assigned,
+						runningProcesses: processCounts.running
+					};
+				});
+
+				const activeExecutors = executorNodes.filter(e => e.state === 'busy').length;
+				const idleExecutors = executorNodes.filter(e => e.state === 'idle').length;
+
+				overviewData = {
+					colonyName: colonyName,
+					executors: executorNodes,
+					processes: processInfos,
+					statistics: statistics,
+					totalExecutors: executorNodes.length,
+					activeExecutors: activeExecutors,
+					idleExecutors: idleExecutors
+				};
 			}
 
 			loadingStatus = 'success';
@@ -107,10 +190,12 @@
 	}
 
 	function startAutoRefresh() {
-		if (refreshInterval) return;
+		if (refreshInterval) {
+			clearInterval(refreshInterval);
+		}
 		refreshInterval = setInterval(() => {
 			loadColonyData();
-		}, 10000); // Refresh every 10 seconds
+		}, refreshIntervalDuration);
 	}
 
 	function stopAutoRefresh() {
@@ -137,14 +222,11 @@
 </svelte:head>
 
 <div class="colony-overview">
-	<div class="header">
-		<div class="header-content">
-			<h1 class="text-3xl font-bold text-gray-900">Colony Overview</h1>
-			<p class="text-gray-600 mt-2">
-				Visual representation of your Colony infrastructure showing servers, executors, and job flow.
-			</p>
-		</div>
+	<div class="page-header">
+		<h1 class="page-title">Colony Overview</h1>
+	</div>
 
+	<div class="header">
 		<div class="controls">
 			<div class="control-group">
 				<button
@@ -175,9 +257,37 @@
 					</svg>
 					Auto Refresh: {autoRefresh ? 'ON' : 'OFF'}
 				</button>
-			</div>
 
+				<select
+					bind:value={refreshIntervalDuration}
+					onchange={autoRefresh ? startAutoRefresh : undefined}
+					class="btn btn-secondary"
+					style="padding: 0.5rem 0.75rem;"
+				>
+					<option value={2000}>2s</option>
+					<option value={5000}>5s</option>
+					<option value={10000}>10s</option>
+					<option value={30000}>30s</option>
+					<option value={60000}>60s</option>
+				</select>
+			</div>
 		</div>
+	</div>
+
+	<!-- View Tabs -->
+	<div class="view-tabs">
+		<button
+			onclick={() => activeView = 'details'}
+			class="tab {activeView === 'details' ? 'active' : ''}"
+		>
+			📊 Details & Statistics
+		</button>
+		<button
+			onclick={() => activeView = 'diagram'}
+			class="tab {activeView === 'diagram' ? 'active' : ''}"
+		>
+			🗺️ Visual Diagram
+		</button>
 	</div>
 
 	{#if loadingStatus === 'error'}
@@ -187,6 +297,15 @@
 		</div>
 	{/if}
 
+	<!-- Details View -->
+	{#if activeView === 'details'}
+		<div class="details-container">
+			<ColonyOverview data={overviewData} loading={loadingStatus === 'loading'} />
+		</div>
+	{/if}
+
+	<!-- Diagram View -->
+	{#if activeView === 'diagram'}
 	<div class="graph-container">
 		<div class="stats-bar">
 			<div class="stat">
@@ -240,7 +359,7 @@
 		</div>
 	</div>
 
-	{#if selectedNode}
+	{#if selectedNode && activeView === 'diagram'}
 		<div class="modal-overlay" onclick={closeNodeDetails}>
 			<div class="modal" onclick={(e) => e.stopPropagation()}>
 				<div class="modal-header">
@@ -319,6 +438,7 @@
 			</div>
 		</div>
 	{/if}
+	{/if}
 </div>
 
 <style>
@@ -328,25 +448,70 @@
 		background: #f9fafb;
 	}
 
+	:global(.dark) .colony-overview {
+		background: #1e293b;
+	}
+
+	.view-tabs {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+		border-bottom: 2px solid #e5e7eb;
+	}
+
+	:global(.dark) .view-tabs {
+		border-bottom-color: #475569;
+	}
+
+	.tab {
+		padding: 0.75rem 1.5rem;
+		background: none;
+		border: none;
+		border-bottom: 3px solid transparent;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #6b7280;
+		cursor: pointer;
+		transition: all 0.2s;
+		margin-bottom: -2px;
+	}
+
+	:global(.dark) .tab {
+		color: #94a3b8;
+	}
+
+	.tab:hover {
+		color: #374151;
+		background: #f3f4f6;
+	}
+
+	:global(.dark) .tab:hover {
+		color: #cbd5e1;
+		background: #334155;
+	}
+
+	.tab.active {
+		color: #3b82f6;
+		border-bottom-color: #3b82f6;
+		background: white;
+	}
+
+	:global(.dark) .tab.active {
+		color: #60a5fa;
+		background: #475569;
+	}
+
+	.details-container {
+		margin-top: 1rem;
+	}
+
 	.header {
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: flex-start;
-		margin-bottom: 2rem;
+		margin-bottom: 1rem;
 		flex-wrap: wrap;
 		gap: 1rem;
-	}
-
-	.header-content h1 {
-		color: #111827;
-		font-size: 1.875rem;
-		font-weight: 700;
-		margin: 0;
-	}
-
-	.header-content p {
-		color: #6b7280;
-		margin: 0.5rem 0 0 0;
 	}
 
 	.controls {

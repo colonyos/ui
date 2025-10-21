@@ -46,7 +46,6 @@
 	let loadingError = '';
 	let colonies: Colony[] = [];
 	let allCrons: ApiCron[] = [];
-	let selectedColony = '';
 	let crypto: Crypto;
 	let serverClient: ColonyClient | null = null;
 	let colonyClient: ColonyClient | null = null;
@@ -153,19 +152,11 @@
 	}
 
 	$: displayCrons = convertToLegacyFormat(allCrons);
-
-	$: filteredCrons = selectedColony 
-		? displayCrons.filter(c => c.colonyname === selectedColony)
-		: displayCrons;
 </script>
 
 <div class="space-y-6">
 	<div>
-		<h1 class="text-3xl font-bold text-gray-900">Cron Jobs</h1>
-		<p class="mt-2 text-gray-600">
-			Manage and monitor your scheduled cron jobs. View execution schedules, next run times, and
-			configuration details.
-		</p>
+		<h1 class="page-title">Cron Jobs</h1>
 	</div>
 
 	<!-- Loading/Error States -->
@@ -179,28 +170,21 @@
 			<strong>Error:</strong> {loadingError}
 		</div>
 	{:else}
-		<div class="flex justify-end gap-4 mb-4">
-		<!-- Colony Filter -->
-		{#if colonies.length > 0}
-			<select bind:value={selectedColony} class="text-sm border border-gray-300 rounded px-3 py-1">
-				<option value="">All Colonies</option>
-				{#each colonies as colony (colony.colonyid)}
-					<option value={colony.name}>{colony.name}</option>
-				{/each}
-			</select>
-		{/if}
-
+		<div class="flex justify-end mb-4">
 		<!-- Refresh Button -->
 		<button
 			on:click={loadCronData}
 			disabled={loadingStatus === 'loading'}
-			class="text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded transition-colors"
+			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+			title="Refresh"
 		>
-			{loadingStatus === 'loading' ? 'Loading...' : 'Refresh'}
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+			</svg>
 		</button>
 	</div>
 
-	<CronTable crons={filteredCrons} onCronClick={handleCronClick} onRunCron={handleRunCron} />
+	<CronTable crons={displayCrons} onCronClick={handleCronClick} onRunCron={handleRunCron} />
 	{/if}
 </div>
 

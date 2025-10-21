@@ -23,8 +23,8 @@
 			<div class="bg-white rounded-lg border border-gray-200 p-4">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm font-medium text-gray-600">{stat.label}</p>
-						<p class="text-2xl font-bold text-gray-900">{stat.value.toLocaleString()}</p>
+						<p class="text-sm font-medium text-gray-600 dark:text-slate-300">{stat.label}</p>
+						<p class="text-2xl font-bold text-gray-900 dark:text-slate-100">{stat.value.toLocaleString()}</p>
 					</div>
 					<div class="p-2 rounded-lg {stat.color}">
 						{#if stat.label === 'Colonies'}
@@ -45,8 +45,8 @@
 	<!-- Process Statistics -->
 	<div class="bg-white rounded-lg border border-gray-200 p-6">
 		<div class="flex items-center justify-between mb-4">
-			<h3 class="text-lg font-semibold text-gray-900">Process Statistics</h3>
-			<span class="text-sm text-gray-500">Total: {totalProcesses.toLocaleString()}</span>
+			<h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Process Statistics</h3>
+			<span class="text-sm text-gray-500 dark:text-slate-300 dark:text-slate-300">Total: {totalProcesses.toLocaleString()}</span>
 		</div>
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 			{#each processStats as stat}
@@ -54,7 +54,7 @@
 					<div class="inline-flex px-3 py-1 rounded-full text-sm font-medium {stat.color} mb-2">
 						{stat.value.toLocaleString()}
 					</div>
-					<p class="text-sm text-gray-600">{stat.label}</p>
+					<p class="text-sm text-gray-600 dark:text-slate-300">{stat.label}</p>
 				</div>
 			{/each}
 		</div>
@@ -63,8 +63,8 @@
 	<!-- Workflow Statistics -->
 	<div class="bg-white rounded-lg border border-gray-200 p-6">
 		<div class="flex items-center justify-between mb-4">
-			<h3 class="text-lg font-semibold text-gray-900">Workflow Statistics</h3>
-			<span class="text-sm text-gray-500">Total: {totalWorkflows.toLocaleString()}</span>
+			<h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Workflow Statistics</h3>
+			<span class="text-sm text-gray-500 dark:text-slate-300 dark:text-slate-300">Total: {totalWorkflows.toLocaleString()}</span>
 		</div>
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 			{#each workflowStats as stat}
@@ -72,7 +72,7 @@
 					<div class="inline-flex px-3 py-1 rounded-full text-sm font-medium {stat.color} mb-2">
 						{stat.value.toLocaleString()}
 					</div>
-					<p class="text-sm text-gray-600">{stat.label}</p>
+					<p class="text-sm text-gray-600 dark:text-slate-300">{stat.label}</p>
 				</div>
 			{/each}
 		</div>
@@ -81,36 +81,36 @@
 	<!-- Detailed Statistics Table -->
 	<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
 		<div class="px-6 py-4 border-b border-gray-200">
-			<h3 class="text-lg font-semibold text-gray-900">Detailed Statistics</h3>
+			<h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Detailed Statistics</h3>
 		</div>
 		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-gray-50">
+			<table class="table-base">
+				<thead class="table-header">
 					<tr>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 							Category
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 							Metric
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 							Count
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 							Status
 						</th>
 					</tr>
 				</thead>
-				<tbody class="bg-white divide-y divide-gray-200">
+				<tbody class="table-body">
 					{#each statItems as stat}
-						<tr class="hover:bg-gray-50">
+						<tr class="table-row dark:hover:bg-slate-600">
 							<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
 								{stat.category}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
 								{stat.label}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
 								{stat.value.toLocaleString()}
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">

@@ -86,48 +86,48 @@
 	}
 </script>
 
-<div class="overflow-x-auto bg-white shadow-md rounded-lg">
-	<table class="min-w-full divide-y divide-gray-200">
-		<thead class="bg-gray-50">
+<div class="table-container">
+	<table class="table-base">
+		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Generator
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Status
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Trigger
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Queue
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Workflow
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Timing
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Last Activity
 				</th>
 			</tr>
 		</thead>
-		<tbody class="bg-white divide-y divide-gray-200">
+		<tbody class="table-body">
 			{#each generators as generator}
 				{@const status = getGeneratorStatus(generator.lastrun, generator.timeout)}
 				{@const queueStatus = getQueueStatus(generator.queuesize)}
 				{@const workflow = parseWorkflowSpec(generator.workflowspec)}
 				<tr 
-					class="hover:bg-gray-50 {onGeneratorClick ? 'cursor-pointer' : ''}" 
+					class="table-row {onGeneratorClick ? 'cursor-pointer' : ''}" 
 					on:click={() => onGeneratorClick?.(generator)}
 				>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
-							<div class="text-sm font-medium text-gray-900">{generator.name}</div>
-							<div class="text-sm text-gray-500">{generator.generatorid}</div>
-							<div class="text-xs text-gray-400">{generator.initiatorname}</div>
-							<div class="text-xs text-gray-400">{generator.colonyname}</div>
+							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{generator.name}</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300 dark:text-slate-300">{generator.generatorid}</div>
+							<div class="text-xs text-gray-400 dark:text-slate-400">{generator.initiatorname}</div>
+							<div class="text-xs text-gray-400 dark:text-slate-400">{generator.colonyname}</div>
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
@@ -136,7 +136,7 @@
 						>
 							{status.label}
 						</span>
-						<div class="text-xs text-gray-500 mt-1">
+						<div class="text-xs text-gray-500 dark:text-slate-300 mt-1">
 							Uptime: {getUptime(generator.firstpack)}
 						</div>
 					</td>
@@ -148,12 +148,12 @@
 						>
 							{getGeneratorTriggerLabel(generator.trigger)}
 						</span>
-						<div class="text-xs text-gray-500 mt-1">
+						<div class="text-xs text-gray-500 dark:text-slate-300 mt-1">
 							Check: {formatCheckerPeriod(generator.checkerperiod)}
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm font-medium text-gray-900">{generator.queuesize}</div>
+						<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{generator.queuesize}</div>
 						<span
 							class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {queueStatus.color}"
 						>
@@ -161,27 +161,27 @@
 						</span>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
+						<div class="text-sm text-gray-900 dark:text-slate-100">
 							<div>{workflow.taskCount} task{workflow.taskCount !== 1 ? 's' : ''}</div>
-							<div class="text-xs text-gray-500 mt-1">
+							<div class="text-xs text-gray-500 dark:text-slate-300 mt-1">
 								{#each workflow.functions.slice(0, 2) as func, index}
 									{func}{index < Math.min(workflow.functions.length - 1, 1) ? ', ' : ''}
 								{/each}
 								{#if workflow.functions.length > 2}
-									<span class="text-gray-400">+{workflow.functions.length - 2} more</span>
+									<span class="text-gray-400 dark:text-slate-400">+{workflow.functions.length - 2} more</span>
 								{/if}
 							</div>
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
-							<div class="text-xs text-gray-500">Timeout:</div>
+						<div class="text-sm text-gray-900 dark:text-slate-100">
+							<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">Timeout:</div>
 							<div>{formatDuration(generator.timeout)}</div>
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
-							<div class="text-xs text-gray-500">Last run:</div>
+						<div class="text-sm text-gray-900 dark:text-slate-100">
+							<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">Last run:</div>
 							<div>{formatDate(generator.lastrun)}</div>
 						</div>
 						<div class="text-xs text-gray-400 mt-1">
@@ -194,6 +194,6 @@
 	</table>
 
 	{#if generators.length === 0}
-		<div class="text-center py-8 text-gray-500">No generators found</div>
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No generators found</div>
 	{/if}
 </div>

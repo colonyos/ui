@@ -21,13 +21,13 @@ export const envConfig = {
 	email: import.meta.env.VITE_COLONIES_EMAIL || '',
 	
 	// AWS S3 configuration
-	awsS3Endpoint: import.meta.env.VITE_COLONIES_AWS_S3_ENDPOINT || '',
-	awsS3Accesskey: import.meta.env.VITE_COLONIES_AWS_S3_ACCESSKEY || '',
-	awsS3Secretkey: import.meta.env.VITE_COLONIES_AWS_S3_SECRETKEY || '',
-	awsS3Region: import.meta.env.VITE_COLONIES_AWS_S3_REGION || 'us-east-1',
-	awsS3Bucket: import.meta.env.VITE_COLONIES_AWS_S3_BUCKET || '',
-	awsS3TLS: import.meta.env.VITE_COLONIES_AWS_S3_TLS || 'true',
-	awsS3SkipVerify: import.meta.env.VITE_COLONIES_AWS_S3_SKIP_VERIFY || 'false',
+	awsS3Endpoint: import.meta.env.VITE_AWS_S3_ENDPOINT || '',
+	awsS3Accesskey: import.meta.env.VITE_AWS_S3_ACCESSKEY || '',
+	awsS3Secretkey: import.meta.env.VITE_AWS_S3_SECRETKEY || '',
+	awsS3Region: import.meta.env.VITE_AWS_S3_REGION || 'us-east-1',
+	awsS3Bucket: import.meta.env.VITE_AWS_S3_BUCKET || '',
+	awsS3TLS: import.meta.env.VITE_AWS_S3_TLS || 'true',
+	awsS3SkipVerify: import.meta.env.VITE_AWS_S3_SKIPVERIFY || 'false',
 	
 	// UI state
 	currentTheme: import.meta.env.VITE_COLONIES_THEME || 'dark',

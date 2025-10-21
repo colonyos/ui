@@ -97,51 +97,51 @@
 	}
 </script>
 
-<div class="overflow-x-auto bg-white shadow-md rounded-lg">
-	<table class="min-w-full divide-y divide-gray-200">
-		<thead class="bg-gray-50">
+<div class="table-container">
+	<table class="table-base">
+		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Cron Job
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Schedule
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Next Run
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Last Run
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Initiator
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Configuration
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
 					Actions
 				</th>
 			</tr>
 		</thead>
-		<tbody class="bg-white divide-y divide-gray-200">
+		<tbody class="table-body">
 			{#each crons as cron (cron.cronid)}
 				<tr
-					class="hover:bg-gray-50 {onCronClick ? 'cursor-pointer' : ''}"
+					class="table-row {onCronClick ? 'cursor-pointer' : ''}"
 					onclick={() => onCronClick?.(cron)}
 				>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
-							<div class="text-sm font-medium text-gray-900">{cron.name}</div>
-							<div class="text-sm text-gray-500">{cron.cronid}</div>
-							<div class="text-xs text-gray-400">{cron.colonyname}</div>
+							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{cron.name}</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300 dark:text-slate-300">{cron.cronid}</div>
+							<div class="text-xs text-gray-400 dark:text-slate-400">{cron.colonyname}</div>
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
+						<div class="text-sm text-gray-900 dark:text-slate-100">
 							<div class="font-mono">{cron.cronexpression}</div>
 							{#if cron.interval > 0}
-								<div class="text-xs text-gray-500">Interval: {cron.interval}s</div>
+								<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">Interval: {cron.interval}s</div>
 							{/if}
 							{#if cron.random}
 								<div class="text-xs text-orange-500">Random timing enabled</div>
@@ -156,14 +156,16 @@
 						>
 							{formatNextRun(cron.nextrun)}
 						</span>
-						<div class="text-xs text-gray-500 mt-1">{formatDate(cron.nextrun)}</div>
+						<div class="text-xs text-gray-500 dark:text-slate-300 mt-1">{formatDate(cron.nextrun)}</div>
 					</td>
-					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
 						{formatDate(cron.lastrun)}
 					</td>
-					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">{cron.initiatorname}</div>
-						<div class="text-xs text-gray-500">{cron.initiatorid}</div>
+					<td class="px-6 py-4">
+						<div class="text-sm text-gray-900 dark:text-slate-100 truncate max-w-32">{cron.initiatorname}</div>
+						<div class="text-xs text-gray-500 dark:text-slate-300 truncate max-w-32 font-mono" title={cron.initiatorid}>
+							{cron.initiatorid}
+						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="text-xs space-y-1">
@@ -176,12 +178,12 @@
 								</div>
 							{/if}
 							{#if cron.checkerperiod > 0}
-								<div class="text-gray-500">
+								<div class="text-gray-500 dark:text-slate-300 dark:text-slate-300">
 									Check period: {cron.checkerperiod}s
 								</div>
 							{/if}
 							{#if cron.prevprocessgraphid}
-								<div class="text-gray-500 truncate max-w-24">
+								<div class="text-gray-500 dark:text-slate-300 truncate max-w-24">
 									Prev: {cron.prevprocessgraphid}
 								</div>
 							{/if}
@@ -209,6 +211,6 @@
 	</table>
 
 	{#if crons.length === 0}
-		<div class="text-center py-8 text-gray-500">No cron jobs found</div>
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No cron jobs found</div>
 	{/if}
 </div>

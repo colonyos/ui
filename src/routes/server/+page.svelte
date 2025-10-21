@@ -24,19 +24,7 @@
 		[key: string]: any;
 	}
 
-	interface ServerStatus {
-		status?: string;
-		running?: boolean;
-		starttime?: string;
-		uptime?: number;
-		version?: string;
-		builddate?: string;
-		gitcommit?: string;
-		[key: string]: any;
-	}
-
 	let statistics: ServerStatistics = {};
-	let serverStatus: ServerStatus = {};
 	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'loading';
 	let loadingError = '';
 	let crypto: Crypto;
@@ -74,23 +62,9 @@
 		loadingError = '';
 
 		try {
-			// Load statistics using the working old format
-			try {
-				const statsResult = await serverClient.getStatistics();
-				statistics = statsResult || {};
-			} catch (statsError) {
-				console.error('Failed to load statistics:', statsError);
-				throw statsError; // Re-throw to be caught by outer catch
-			}
-
-			// Re-enable server status call
-			try {
-				const statusResult = await serverClient.getServerStatus();
-				serverStatus = statusResult || {};
-			} catch (statusError) {
-				console.warn('Failed to load server status:', statusError);
-			}
-
+			// Load statistics
+			const statsResult = await serverClient.getStatistics();
+			statistics = statsResult || {};
 			loadingStatus = 'success';
 		} catch (err) {
 			console.error('Failed to load server data:', err);
@@ -127,13 +101,16 @@
 
 <div class="p-6">
 	<div class="flex justify-between items-center mb-6">
-		<h1 class="text-3xl font-bold text-gray-900 dark:text-white">Server</h1>
+		<h1 class="page-title">Server</h1>
 		<button
 			on:click={loadServerData}
 			disabled={loadingStatus === 'loading'}
-			class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors"
+			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+			title="Refresh"
 		>
-			{loadingStatus === 'loading' ? 'Refreshing...' : 'Refresh'}
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+			</svg>
 		</button>
 	</div>
 
@@ -148,60 +125,8 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<!-- Server Status -->
-			<div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-				<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center">
-					<div class="w-3 h-3 rounded-full mr-3 {serverStatus.running ? 'bg-green-500' : 'bg-red-500'}"></div>
-					Server Status
-				</h2>
-
-				<div class="space-y-3">
-					<div class="flex justify-between">
-						<span class="text-gray-600 dark:text-gray-400">Status:</span>
-						<span class="font-mono text-gray-900 dark:text-white">
-							{serverStatus.status || (serverStatus.running ? 'Running' : 'Unknown')}
-						</span>
-					</div>
-
-					{#if serverStatus.version}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Version:</span>
-							<span class="font-mono text-gray-900 dark:text-white">{serverStatus.version}</span>
-						</div>
-					{/if}
-
-					{#if serverStatus.starttime}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Started:</span>
-							<span class="font-mono text-gray-900 dark:text-white">{formatDate(serverStatus.starttime)}</span>
-						</div>
-					{/if}
-
-					{#if serverStatus.uptime}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Uptime:</span>
-							<span class="font-mono text-gray-900 dark:text-white">{formatUptime(serverStatus.uptime)}</span>
-						</div>
-					{/if}
-
-					{#if serverStatus.builddate}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Build Date:</span>
-							<span class="font-mono text-gray-900 dark:text-white">{formatDate(serverStatus.builddate)}</span>
-						</div>
-					{/if}
-
-					{#if serverStatus.gitcommit}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Git Commit:</span>
-							<span class="font-mono text-gray-900 dark:text-white">{serverStatus.gitcommit.substring(0, 8)}</span>
-						</div>
-					{/if}
-				</div>
-			</div>
-
 			<!-- Server Statistics -->
-			<div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 shadow-sm">
 				<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Statistics</h2>
 
 				<div class="space-y-3">
@@ -296,7 +221,7 @@
 						</div>
 					{/if}
 
-					{#if statistics.uptime !== undefined && statistics.uptime !== serverStatus.uptime}
+					{#if statistics.uptime !== undefined}
 						<div class="flex justify-between">
 							<span class="text-gray-600 dark:text-gray-400">Uptime:</span>
 							<span class="font-mono text-gray-900 dark:text-white font-semibold">{formatUptime(statistics.uptime)}</span>
@@ -305,19 +230,11 @@
 				</div>
 			</div>
 
-			<!-- Raw Server Status Data (for debugging) -->
-			{#if Object.keys(serverStatus).length > 0}
-				<div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-sm">
-					<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Raw Server Status</h2>
-					<pre class="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-auto max-h-64"><code>{JSON.stringify(serverStatus, null, 2)}</code></pre>
-				</div>
-			{/if}
-
 			<!-- Raw Statistics Data (for debugging) -->
 			{#if Object.keys(statistics).length > 0}
-				<div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-sm">
+				<div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-6 shadow-sm">
 					<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Raw Statistics</h2>
-					<pre class="text-xs bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-auto max-h-64"><code>{JSON.stringify(statistics, null, 2)}</code></pre>
+					<pre class="text-xs bg-gray-100 dark:bg-slate-800 p-3 rounded overflow-auto max-h-64"><code>{JSON.stringify(statistics, null, 2)}</code></pre>
 				</div>
 			{/if}
 		</div>

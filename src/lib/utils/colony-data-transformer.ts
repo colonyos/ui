@@ -31,15 +31,21 @@ export function transformColonyAPIToGraphData(apiData: ColonyAPIData): ColonyGra
 	// Transform executors
 	if (apiData.executors && Array.isArray(apiData.executors)) {
 		apiData.executors.forEach((executor) => {
+			// Match executor to server by colony name
+			const colonyName = executor.colonyname || executor.colony_name;
+			const matchingServer = servers.find(s => s.id === colonyName);
+			const serverId = matchingServer ? matchingServer.id : (servers[0]?.id || 'default-server');
+
 			const exec: ColonyExecutor = {
-				id: executor.id || executor.executorname || `executor-${Math.random()}`,
+				id: executor.executorid || executor.id || executor.executorname || `executor-${Math.random()}`,
 				name: executor.executorname || executor.name || 'Unknown Executor',
-				serverId: executor.colonyname || servers[0]?.id || 'default-server',
+				serverId: serverId,
 				status: executor.state === 1 ? 'online' : 'offline',
 				capabilities: executor.capabilities || [],
 				lastActivity: executor.lastheartbeat ? new Date(executor.lastheartbeat * 1000) : undefined,
 				processCount: 0
 			};
+
 			executors.push(exec);
 		});
 	}

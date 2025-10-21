@@ -205,10 +205,7 @@
 
 <div class="space-y-6">
 	<div>
-		<h1 class="text-3xl font-bold text-gray-900">Executors</h1>
-		<p class="mt-2 text-gray-600">
-			Manage and monitor your compute executors. View hardware specifications and project allocations.
-		</p>
+		<h1 class="page-title">Executors</h1>
 	</div>
 
 	<!-- Loading/Error States -->
@@ -227,9 +224,12 @@
 			<button
 				on:click={loadExecutorData}
 				disabled={loadingStatus === 'loading'}
-				class="text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded transition-colors"
+				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+				title="Refresh"
 			>
-				{loadingStatus === 'loading' ? 'Loading...' : 'Refresh'}
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+				</svg>
 			</button>
 		</div>
 
