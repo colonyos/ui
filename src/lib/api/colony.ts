@@ -159,15 +159,6 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
-  async getServerStatus(): Promise<any> {
-    const msg = {
-      msgtype: "getserverstatusmsg"
-    };
-
-    const rpcMessage = this.createRPCMsg(msg);
-    return this.sendRPC(rpcMessage);
-  }
-
   // Executor methods
   async getExecutors(colonyName: string): Promise<any> {
     const msg = {
@@ -438,6 +429,23 @@ Body: [Could not decode payload]`);
   async getWorkflows() {
     // TODO: Implement workflows API call - use getProcessGraphs instead
     throw new Error('Use getProcessGraphs method instead');
+  }
+
+  /**
+   * Remove a process graph (workflow)
+   * @param processGraphId - ID of the process graph to remove
+   * @returns Promise resolving to the removal response
+   * Note: This method requires colony private key for authentication
+   */
+  async removeProcessGraph(processGraphId: string): Promise<any> {
+    const msg = {
+      msgtype: "removeprocessgraphmsg",
+      processgraphid: processGraphId,
+      all: false
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
   }
 
   /**

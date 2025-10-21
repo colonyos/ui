@@ -151,20 +151,20 @@
 
 {#if show}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick={handleBackdropClick}>
-		<div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden">
+		<div class="bg-white dark:bg-slate-700 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden">
 			<!-- Header -->
-			<div class="px-6 py-4 border-b border-gray-200">
+			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
 				<div class="flex justify-between items-start">
 					<div>
-						<h3 class="text-lg font-semibold text-gray-900">Executor Details</h3>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Executor Details</h3>
 						{#if executor}
-							<p class="text-sm text-gray-600 mt-1">{executor.executorname}</p>
-							<p class="text-xs text-gray-400 font-mono">{executor.executorid}</p>
+							<p class="text-sm text-gray-600 dark:text-slate-300 mt-1">{executor.executorname}</p>
+							<p class="text-xs text-gray-400 dark:text-slate-400 font-mono">{executor.executorid}</p>
 						{/if}
 					</div>
 					<button
 						onclick={onClose}
-						class="text-gray-400 hover:text-gray-600 transition-colors"
+						class="text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
 					>
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -178,44 +178,44 @@
 				{#if loadingStatus === 'loading'}
 					<div class="flex items-center justify-center py-8">
 						<div class="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
-						<span class="text-gray-600">Loading executor details...</span>
+						<span class="text-gray-600 dark:text-slate-300">Loading executor details...</span>
 					</div>
 				{:else if loadingStatus === 'error' && !executorDetails}
-					<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+					<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
 						<strong>Error:</strong> {loadingError}
 					</div>
 				{:else if executorDetails}
 					<div class="space-y-6">
 						<!-- Basic Information -->
 						<div>
-							<h4 class="text-md font-medium text-gray-900 mb-3">Basic Information</h4>
-							<div class="bg-gray-50 rounded-lg p-4 space-y-2">
+							<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Basic Information</h4>
+							<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 space-y-2">
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 									<div>
-										<span class="font-medium text-gray-700">Name:</span>
-										<span class="text-gray-900 ml-2">{executorDetails.executorname}</span>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Name:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{executorDetails.executorname}</span>
 									</div>
 									<div>
-										<span class="font-medium text-gray-700">Type:</span>
-										<span class="text-gray-900 ml-2">{executorDetails.executortype}</span>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Type:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{executorDetails.executortype}</span>
 									</div>
 									<div>
-										<span class="font-medium text-gray-700">Colony:</span>
-										<span class="text-gray-900 ml-2">{executorDetails.colonyname}</span>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Colony:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{executorDetails.colonyname}</span>
 									</div>
 									<div>
-										<span class="font-medium text-gray-700">Status:</span>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Status:</span>
 										<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-2 {getStateColor(executorDetails.state)}">
 											{getStateLabel(executorDetails.state)}
 										</span>
 									</div>
 									<div>
-										<span class="font-medium text-gray-700">Commission Time:</span>
-										<span class="text-gray-900 ml-2">{formatDate(executorDetails.commissiontime)}</span>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Commission Time:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{formatDate(executorDetails.commissiontime)}</span>
 									</div>
 									<div>
-										<span class="font-medium text-gray-700">Last Heard From:</span>
-										<span class="text-gray-900 ml-2">{formatDate(executorDetails.lastheardfromtime)}</span>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Last Heard From:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{formatDate(executorDetails.lastheardfromtime)}</span>
 									</div>
 								</div>
 							</div>
@@ -224,20 +224,20 @@
 						<!-- Location -->
 						{#if executorDetails.location}
 							<div>
-								<h4 class="text-md font-medium text-gray-900 mb-3">Location</h4>
-								<div class="bg-blue-50 rounded-lg p-4">
+								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Location</h4>
+								<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
 									<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
 										<div>
-											<span class="font-medium text-blue-700">Description:</span>
-											<span class="text-blue-900 ml-2">{executorDetails.location.desc || 'Not specified'}</span>
+											<span class="font-medium text-blue-700 dark:text-blue-300">Description:</span>
+											<span class="text-blue-900 dark:text-blue-100 ml-2">{executorDetails.location.desc || 'Not specified'}</span>
 										</div>
 										<div>
-											<span class="font-medium text-blue-700">Latitude:</span>
-											<span class="text-blue-900 ml-2">{executorDetails.location.lat || 'N/A'}</span>
+											<span class="font-medium text-blue-700 dark:text-blue-300">Latitude:</span>
+											<span class="text-blue-900 dark:text-blue-100 ml-2">{executorDetails.location.lat || 'N/A'}</span>
 										</div>
 										<div>
-											<span class="font-medium text-blue-700">Longitude:</span>
-											<span class="text-blue-900 ml-2">{executorDetails.location.long || 'N/A'}</span>
+											<span class="font-medium text-blue-700 dark:text-blue-300">Longitude:</span>
+											<span class="text-blue-900 dark:text-blue-100 ml-2">{executorDetails.location.long || 'N/A'}</span>
 										</div>
 									</div>
 								</div>
@@ -247,33 +247,33 @@
 						<!-- Hardware Capabilities -->
 						{#if executorDetails.capabilities?.hardware}
 							<div>
-								<h4 class="text-md font-medium text-gray-900 mb-3">Hardware Capabilities</h4>
-								<div class="bg-green-50 rounded-lg p-4">
+								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Hardware Capabilities</h4>
+								<div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 										<div>
-											<span class="font-medium text-green-700">Model:</span>
-											<span class="text-green-900 ml-2">{executorDetails.capabilities.hardware.model}</span>
+											<span class="font-medium text-green-700 dark:text-green-300">Model:</span>
+											<span class="text-green-900 dark:text-green-100 ml-2">{executorDetails.capabilities.hardware.model}</span>
 										</div>
 										<div>
-											<span class="font-medium text-green-700">Nodes:</span>
-											<span class="text-green-900 ml-2">{executorDetails.capabilities.hardware.nodes}</span>
+											<span class="font-medium text-green-700 dark:text-green-300">Nodes:</span>
+											<span class="text-green-900 dark:text-green-100 ml-2">{executorDetails.capabilities.hardware.nodes}</span>
 										</div>
 										<div>
-											<span class="font-medium text-green-700">CPU:</span>
-											<span class="text-green-900 ml-2">{executorDetails.capabilities.hardware.cpu}</span>
+											<span class="font-medium text-green-700 dark:text-green-300">CPU:</span>
+											<span class="text-green-900 dark:text-green-100 ml-2">{executorDetails.capabilities.hardware.cpu}</span>
 										</div>
 										<div>
-											<span class="font-medium text-green-700">Memory:</span>
-											<span class="text-green-900 ml-2">{formatMemory(executorDetails.capabilities.hardware.mem)}</span>
+											<span class="font-medium text-green-700 dark:text-green-300">Memory:</span>
+											<span class="text-green-900 dark:text-green-100 ml-2">{formatMemory(executorDetails.capabilities.hardware.mem)}</span>
 										</div>
 										<div>
-											<span class="font-medium text-green-700">Storage:</span>
-											<span class="text-green-900 ml-2">{executorDetails.capabilities.hardware.storage}</span>
+											<span class="font-medium text-green-700 dark:text-green-300">Storage:</span>
+											<span class="text-green-900 dark:text-green-100 ml-2">{executorDetails.capabilities.hardware.storage}</span>
 										</div>
 										{#if executorDetails.capabilities.hardware.gpu}
 											<div>
-												<span class="font-medium text-green-700">GPU:</span>
-												<span class="text-green-900 ml-2">
+												<span class="font-medium text-green-700 dark:text-green-300">GPU:</span>
+												<span class="text-green-900 dark:text-green-100 ml-2">
 													{executorDetails.capabilities.hardware.gpu.count}x {executorDetails.capabilities.hardware.gpu.name}
 													({formatMemory(executorDetails.capabilities.hardware.gpu.mem)} each)
 												</span>
@@ -287,20 +287,20 @@
 						<!-- Software Capabilities -->
 						{#if executorDetails.capabilities?.software}
 							<div>
-								<h4 class="text-md font-medium text-gray-900 mb-3">Software Capabilities</h4>
-								<div class="bg-purple-50 rounded-lg p-4">
+								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Software Capabilities</h4>
+								<div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
 									<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
 										<div>
-											<span class="font-medium text-purple-700">Name:</span>
-											<span class="text-purple-900 ml-2">{executorDetails.capabilities.software.name}</span>
+											<span class="font-medium text-purple-700 dark:text-purple-300">Name:</span>
+											<span class="text-purple-900 dark:text-purple-100 ml-2">{executorDetails.capabilities.software.name}</span>
 										</div>
 										<div>
-											<span class="font-medium text-purple-700">Type:</span>
-											<span class="text-purple-900 ml-2">{executorDetails.capabilities.software.type}</span>
+											<span class="font-medium text-purple-700 dark:text-purple-300">Type:</span>
+											<span class="text-purple-900 dark:text-purple-100 ml-2">{executorDetails.capabilities.software.type}</span>
 										</div>
 										<div>
-											<span class="font-medium text-purple-700">Version:</span>
-											<span class="text-purple-900 ml-2">{executorDetails.capabilities.software.version}</span>
+											<span class="font-medium text-purple-700 dark:text-purple-300">Version:</span>
+											<span class="text-purple-900 dark:text-purple-100 ml-2">{executorDetails.capabilities.software.version}</span>
 										</div>
 									</div>
 								</div>
@@ -310,10 +310,10 @@
 						<!-- Project Allocations -->
 						{#if executorDetails.allocations?.projects && Object.keys(executorDetails.allocations.projects).length > 0}
 							<div>
-								<h4 class="text-md font-medium text-gray-900 mb-3">Project Allocations</h4>
-								<div class="bg-yellow-50 rounded-lg p-4">
+								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Project Allocations</h4>
+								<div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
 									<div class="text-sm">
-										<pre class="text-yellow-900 font-mono whitespace-pre-wrap">{JSON.stringify(executorDetails.allocations.projects, null, 2)}</pre>
+										<pre class="text-yellow-900 dark:text-yellow-100 font-mono whitespace-pre-wrap">{JSON.stringify(executorDetails.allocations.projects, null, 2)}</pre>
 									</div>
 								</div>
 							</div>
@@ -321,64 +321,64 @@
 
 						<!-- Available Functions -->
 						<div>
-							<h4 class="text-md font-medium text-gray-900 mb-3">Available Functions</h4>
+							<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Available Functions</h4>
 							{#if functionsLoadingStatus === 'loading'}
 								<div class="flex items-center justify-center py-4">
 									<div class="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-									<span class="text-gray-600 text-sm">Loading functions...</span>
+									<span class="text-gray-600 dark:text-slate-300 text-sm">Loading functions...</span>
 								</div>
 							{:else if functionsLoadingStatus === 'error'}
-								<div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+								<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-2 rounded text-sm">
 									<strong>Error:</strong> {functionsError}
 								</div>
 							{:else if functionsLoadingStatus === 'success'}
 								{#if executorFunctions.length > 0}
-									<div class="bg-indigo-50 rounded-lg p-4 space-y-3">
+									<div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 space-y-3">
 										{#each executorFunctions as func, i}
-											<div class="border border-indigo-200 rounded p-3 bg-white">
+											<div class="border border-indigo-200 dark:border-indigo-800 rounded p-3 bg-white dark:bg-slate-600">
 												<div class="space-y-3 text-sm">
 													<div>
-														<span class="font-medium text-indigo-700">Function Name:</span>
-														<span class="text-indigo-900 ml-2">{func.funcname || 'Unknown'}</span>
+														<span class="font-medium text-indigo-700 dark:text-indigo-300">Function Name:</span>
+														<span class="text-indigo-900 dark:text-indigo-100 ml-2">{func.funcname || 'Unknown'}</span>
 													</div>
 													<div>
-														<span class="font-medium text-indigo-700">Function ID:</span>
-														<div class="text-indigo-900 font-mono text-xs mt-1 break-all bg-indigo-50 p-2 rounded">
+														<span class="font-medium text-indigo-700 dark:text-indigo-300">Function ID:</span>
+														<div class="text-indigo-900 dark:text-indigo-100 font-mono text-xs mt-1 break-all bg-indigo-50 dark:bg-indigo-900/30 p-2 rounded">
 															{func.functionid || 'N/A'}
 														</div>
 													</div>
 													<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 													{#if func.maxwaittime !== undefined}
 														<div>
-															<span class="font-medium text-indigo-700">Max Wait Time:</span>
-															<span class="text-indigo-900 ml-2">{func.maxwaittime}s</span>
+															<span class="font-medium text-indigo-700 dark:text-indigo-300">Max Wait Time:</span>
+															<span class="text-indigo-900 dark:text-indigo-100 ml-2">{func.maxwaittime}s</span>
 														</div>
 													{/if}
 													{#if func.maxexectime !== undefined}
 														<div>
-															<span class="font-medium text-indigo-700">Max Exec Time:</span>
-															<span class="text-indigo-900 ml-2">{func.maxexectime}s</span>
+															<span class="font-medium text-indigo-700 dark:text-indigo-300">Max Exec Time:</span>
+															<span class="text-indigo-900 dark:text-indigo-100 ml-2">{func.maxexectime}s</span>
 														</div>
 													{/if}
 													{#if func.maxretries !== undefined}
 														<div>
-															<span class="font-medium text-indigo-700">Max Retries:</span>
-															<span class="text-indigo-900 ml-2">{func.maxretries}</span>
+															<span class="font-medium text-indigo-700 dark:text-indigo-300">Max Retries:</span>
+															<span class="text-indigo-900 dark:text-indigo-100 ml-2">{func.maxretries}</span>
 														</div>
 													{/if}
 													{#if func.priority !== undefined}
 														<div>
-															<span class="font-medium text-indigo-700">Priority:</span>
-															<span class="text-indigo-900 ml-2">{func.priority}</span>
+															<span class="font-medium text-indigo-700 dark:text-indigo-300">Priority:</span>
+															<span class="text-indigo-900 dark:text-indigo-100 ml-2">{func.priority}</span>
 														</div>
 													{/if}
 													</div>
 												</div>
 												{#if func.conditions}
-													<div class="mt-2 pt-2 border-t border-indigo-200">
-														<span class="font-medium text-indigo-700 text-sm">Conditions:</span>
-														<div class="mt-1 bg-indigo-100 rounded p-2 text-xs">
-															<pre class="text-indigo-900 font-mono whitespace-pre-wrap">{JSON.stringify(func.conditions, null, 2)}</pre>
+													<div class="mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-700">
+														<span class="font-medium text-indigo-700 dark:text-indigo-300 text-sm">Conditions:</span>
+														<div class="mt-1 bg-indigo-100 dark:bg-indigo-900/30 rounded p-2 text-xs">
+															<pre class="text-indigo-900 dark:text-indigo-100 font-mono whitespace-pre-wrap">{JSON.stringify(func.conditions, null, 2)}</pre>
 														</div>
 													</div>
 												{/if}
@@ -386,7 +386,7 @@
 										{/each}
 									</div>
 								{:else}
-									<div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
+									<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 text-center text-gray-500 dark:text-slate-300 text-sm">
 										No functions available for this executor
 									</div>
 								{/if}
@@ -394,17 +394,17 @@
 						</div>
 					</div>
 				{:else}
-					<div class="text-center py-8 text-gray-500">
+					<div class="text-center py-8 text-gray-500 dark:text-slate-300">
 						No details available
 					</div>
 				{/if}
 			</div>
 
 			<!-- Footer -->
-			<div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+			<div class="px-6 py-4 border-t border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 flex justify-end">
 				<button
 					onclick={onClose}
-					class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+					class="px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-slate-500 dark:hover:bg-slate-400 text-white rounded-lg transition-colors"
 				>
 					Close
 				</button>

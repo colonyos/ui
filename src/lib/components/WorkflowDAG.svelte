@@ -209,15 +209,15 @@
 	}
 </script>
 
-<div class="bg-white rounded-lg border border-gray-200 p-6">
+<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-6">
 	<div class="flex justify-between items-center mb-6">
 		<div>
-			<h2 class="text-xl font-semibold text-gray-900">Workflow DAG</h2>
-			<p class="text-sm text-gray-600 mt-1">
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Workflow DAG</h2>
+			<p class="text-sm text-gray-600 dark:text-slate-300 mt-1">
 				Workflow ID: <span class="font-mono text-xs">{workflowId}</span>
 			</p>
 			{#if graphData}
-				<p class="text-sm text-gray-600 mt-1">
+				<p class="text-sm text-gray-600 dark:text-slate-300 mt-1">
 					Initiator: <span class="font-medium">{graphData.initiatorname}</span> •
 					Colony: <span class="font-medium">{graphData.colonyname}</span>
 				</p>
@@ -229,22 +229,22 @@
 					{getWorkflowStateLabel(graphData.state)}
 				</span>
 			{/if}
-			<div class="text-sm text-gray-500">
+			<div class="text-sm text-gray-500 dark:text-slate-300">
 				{nodes.length} process{nodes.length === 1 ? '' : 'es'}
 			</div>
 		</div>
 	</div>
 
 	{#if !graphData}
-		<div class="text-center py-8 text-gray-500">
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300">
 			No workflow data available
 		</div>
 	{:else if nodes.length === 0}
-		<div class="text-center py-8 text-gray-500">
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300">
 			No processes found for this workflow
 		</div>
 	{:else}
-		<div class="overflow-auto border border-gray-200 rounded-lg bg-gray-50">
+		<div class="overflow-auto border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-800">
 			<svg
 				viewBox="0 0 {viewBoxWidth} {viewBoxHeight}"
 				class="w-full"
@@ -292,23 +292,25 @@
 				<!-- Process nodes -->
 				{#each nodes as node}
 					<g transform="translate({node.position.x}, {node.position.y})">
-						<!-- Node background -->
+						<!-- Node background - use lighter colors for better text contrast -->
 						<rect
 							width="200"
 							height="80"
 							rx="8"
-							fill={node.style.background || "white"}
-							stroke={node.type === 'input' ? '#10b981' : node.type === 'output' ? '#ef4444' : '#d1d5db'}
-							stroke-width="2"
-							class="hover:stroke-blue-400"
+							fill="#ffffff"
+							stroke={node.type === 'input' ? '#10b981' : node.type === 'output' ? '#ef4444' : '#3b82f6'}
+							stroke-width="2.5"
+							class="hover:stroke-opacity-80 transition-all"
+							filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
 						/>
 
 						<!-- Node type indicator -->
 						<text
 							x="10"
 							y="20"
-							class="text-sm font-medium"
-							fill={node.type === 'input' ? '#10b981' : node.type === 'output' ? '#ef4444' : '#6b7280'}
+							class="text-sm font-bold"
+							fill={node.type === 'input' ? '#10b981' : node.type === 'output' ? '#ef4444' : '#3b82f6'}
+							font-size="14"
 						>
 							{getNodeTypeIcon(node.type)}
 						</text>
@@ -318,7 +320,9 @@
 							x="100"
 							y="35"
 							text-anchor="middle"
-							class="text-sm font-medium fill-gray-900"
+							font-size="13"
+							font-weight="600"
+							fill="#1f2937"
 						>
 							{node.data.label}
 						</text>
@@ -326,9 +330,11 @@
 						<!-- Process ID (truncated) -->
 						<text
 							x="100"
-							y="50"
+							y="52"
 							text-anchor="middle"
-							class="text-xs fill-gray-500 font-mono"
+							font-size="10"
+							font-family="monospace"
+							fill="#6b7280"
 						>
 							{node.id.substring(0, 12)}...
 						</text>
@@ -336,9 +342,11 @@
 						<!-- Node type label -->
 						<text
 							x="100"
-							y="65"
+							y="68"
 							text-anchor="middle"
-							class="text-xs fill-gray-400"
+							font-size="10"
+							font-weight="500"
+							fill={node.type === 'input' ? '#10b981' : node.type === 'output' ? '#ef4444' : '#3b82f6'}
 						>
 							{node.type === 'input' ? 'Start' : node.type === 'output' ? 'End' : 'Process'}
 						</text>
@@ -350,36 +358,36 @@
 		<!-- Workflow Details -->
 		<div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 			<div>
-				<h3 class="text-lg font-medium text-gray-900 mb-3">Workflow Information</h3>
-				<div class="bg-gray-50 rounded-lg p-4">
+				<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Workflow Information</h3>
+				<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4">
 					<dl class="space-y-2">
 						<div class="flex justify-between">
-							<dt class="text-sm text-gray-600">Initiator:</dt>
-							<dd class="text-sm font-medium text-gray-900">{graphData.initiatorname}</dd>
+							<dt class="text-sm text-gray-600 dark:text-slate-300">Initiator:</dt>
+							<dd class="text-sm font-medium text-gray-900 dark:text-white">{graphData.initiatorname}</dd>
 						</div>
 						<div class="flex justify-between">
-							<dt class="text-sm text-gray-600">Colony:</dt>
-							<dd class="text-sm font-medium text-gray-900">{graphData.colonyname}</dd>
+							<dt class="text-sm text-gray-600 dark:text-slate-300">Colony:</dt>
+							<dd class="text-sm font-medium text-gray-900 dark:text-white">{graphData.colonyname}</dd>
 						</div>
 						<div class="flex justify-between">
-							<dt class="text-sm text-gray-600">Submitted:</dt>
-							<dd class="text-sm font-medium text-gray-900">{formatTime(graphData.submissiontime)}</dd>
+							<dt class="text-sm text-gray-600 dark:text-slate-300">Submitted:</dt>
+							<dd class="text-sm font-medium text-gray-900 dark:text-white">{formatTime(graphData.submissiontime)}</dd>
 						</div>
 						<div class="flex justify-between">
-							<dt class="text-sm text-gray-600">Root Processes:</dt>
-							<dd class="text-sm font-medium text-gray-900">{graphData.rootprocessids.length}</dd>
+							<dt class="text-sm text-gray-600 dark:text-slate-300">Root Processes:</dt>
+							<dd class="text-sm font-medium text-gray-900 dark:text-white">{graphData.rootprocessids.length}</dd>
 						</div>
 						<div class="flex justify-between">
-							<dt class="text-sm text-gray-600">Total Processes:</dt>
-							<dd class="text-sm font-medium text-gray-900">{graphData.processids.length}</dd>
+							<dt class="text-sm text-gray-600 dark:text-slate-300">Total Processes:</dt>
+							<dd class="text-sm font-medium text-gray-900 dark:text-white">{graphData.processids.length}</dd>
 						</div>
 					</dl>
 				</div>
 			</div>
 
 			<div>
-				<h3 class="text-lg font-medium text-gray-900 mb-3">Process Nodes</h3>
-				<div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+				<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Process Nodes</h3>
+				<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 max-h-64 overflow-y-auto">
 					<div class="space-y-2">
 						{#each nodes as node}
 							<div class="flex items-center justify-between py-1">
@@ -387,9 +395,9 @@
 									<span class="text-sm font-medium" style="color: {node.type === 'input' ? '#10b981' : node.type === 'output' ? '#ef4444' : '#6b7280'}">
 										{getNodeTypeIcon(node.type)}
 									</span>
-									<span class="text-sm font-medium text-gray-900">{node.data.label}</span>
+									<span class="text-sm font-medium text-gray-900 dark:text-white">{node.data.label}</span>
 								</div>
-								<span class="text-xs font-mono text-gray-500">{node.id.substring(0, 8)}...</span>
+								<span class="text-xs font-mono text-gray-500 dark:text-slate-300">{node.id.substring(0, 8)}...</span>
 							</div>
 						{/each}
 					</div>

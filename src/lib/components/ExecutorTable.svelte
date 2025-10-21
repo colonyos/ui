@@ -19,36 +19,36 @@
 
 </script>
 
-<div class="overflow-x-auto bg-white shadow-md rounded-lg">
-	<table class="min-w-full divide-y divide-gray-200">
-		<thead class="bg-gray-50">
+<div class="table-container">
+	<table class="table-base">
+		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Executor
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Status
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Hardware
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Projects
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Last Heard
 				</th>
 			</tr>
 		</thead>
-		<tbody class="bg-white divide-y divide-gray-200">
+		<tbody class="table-body">
 			{#each executors as executor (executor.executorid)}
-				<tr class="hover:bg-gray-50 {onExecutorClick ? 'cursor-pointer' : ''}"
+				<tr class="table-row {onExecutorClick ? 'cursor-pointer' : ''}"
 					onclick={() => onExecutorClick?.(executor)}>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
-							<div class="text-sm font-medium text-gray-900">{executor.executorname}</div>
-							<div class="text-sm text-gray-500">{executor.executorid}</div>
-							<div class="text-xs text-gray-400">{executor.executortype}</div>
+							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{executor.executorname}</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300">{executor.executorid}</div>
+							<div class="text-xs text-gray-400 dark:text-slate-400">{executor.executortype}</div>
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
@@ -61,27 +61,27 @@
 						</span>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
+						<div class="text-sm text-gray-900 dark:text-slate-100">
 							<div>{executor.capabilities.hardware.model}</div>
-							<div class="text-xs text-gray-500">
+							<div class="text-xs text-gray-500 dark:text-slate-300">
 								{executor.capabilities.hardware.nodes} nodes • {executor.capabilities.hardware.cpu}
 							</div>
-							<div class="text-xs text-gray-500">
+							<div class="text-xs text-gray-500 dark:text-slate-300">
 								RAM: {executor.capabilities.hardware.mem} • Storage: {executor.capabilities.hardware
 									.storage}
 							</div>
 							{#if executor.capabilities.hardware.gpu.count > 0}
-								<div class="text-xs text-gray-500">
+								<div class="text-xs text-gray-500 dark:text-slate-300">
 									GPU: {executor.capabilities.hardware.gpu.count}x {executor.capabilities.hardware
 										.gpu.name} ({executor.capabilities.hardware.gpu.mem})
 								</div>
 							{/if}
 						</div>
 					</td>
-					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
 						{calculateTotalProjects(executor)}
 					</td>
-					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
 						{formatDate(executor.lastheardfromtime)}
 					</td>
 				</tr>

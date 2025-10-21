@@ -83,46 +83,46 @@
 	</span>
 {/snippet}
 
-<div class="overflow-x-auto bg-white shadow-md rounded-lg">
-	<table class="min-w-full divide-y divide-gray-200">
-		<thead class="bg-gray-50">
+<div class="table-container">
+	<table class="table-base">
+		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Process ID
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Status
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Function
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Executor
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Initiator
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Deadline
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Duration
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Workflow
 				</th>
 			</tr>
 		</thead>
-		<tbody class="bg-white divide-y divide-gray-200">
+		<tbody class="table-body">
 			{#each processes as process}
 				{@const deadlineStatus = getDeadlineStatus(process.execdeadline, process.state)}
-				<tr class="hover:bg-gray-50" class:cursor-pointer={onProcessClick} onclick={() => onProcessClick?.(process)}>
+				<tr class="table-row" class:cursor-pointer={onProcessClick} onclick={() => onProcessClick?.(process)}>
 					<!-- Process ID -->
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
-							<div class="text-sm font-medium text-gray-900 font-mono">{process.processid.substring(0, 16)}...</div>
+							<div class="text-sm font-medium text-gray-900 dark:text-slate-100 font-mono">{process.processid.substring(0, 16)}...</div>
 							{#if process.spec?.nodename}
-								<div class="text-xs text-gray-400">Node: {process.spec.nodename}</div>
+								<div class="text-xs text-gray-400 dark:text-slate-400">Node: {process.spec.nodename}</div>
 							{/if}
 						</div>
 					</td>
@@ -140,7 +140,7 @@
 
 					<!-- Function -->
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
+						<div class="text-sm text-gray-900 dark:text-slate-100">
 							<div class="font-medium">{process.spec?.funcname || 'Unknown'}</div>
 							{#if process.spec?.args && process.spec.args.length > 0}
 								<div class="text-xs text-gray-400">Args: {process.spec.args.join(', ')}</div>
@@ -151,17 +151,17 @@
 					<!-- Executor -->
 					<td class="px-6 py-4 whitespace-nowrap">
 						{#if process.isassigned && process.assignedexecutorid}
-							<div class="text-sm text-gray-900 font-mono">{process.assignedexecutorid.substring(0, 12)}...</div>
+							<div class="text-sm text-gray-900 dark:text-slate-100 font-mono">{process.assignedexecutorid.substring(0, 12)}...</div>
 							<div class="text-xs text-green-600">Assigned</div>
 						{:else}
-							<div class="text-sm text-gray-500">Not assigned</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300">Not assigned</div>
 							<div class="text-xs text-gray-400">Type: {process.spec?.conditions?.executortype || 'Unknown'}</div>
 						{/if}
 					</td>
 
 					<!-- Initiator -->
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">{process.initiatorname || 'Unknown'}</div>
+						<div class="text-sm text-gray-900 dark:text-slate-100">{process.initiatorname || 'Unknown'}</div>
 						{@render dateDisplay(process.submissiontime, 'Submitted')}
 					</td>
 
@@ -169,7 +169,7 @@
 					<td class="px-6 py-4 whitespace-nowrap">
 						{#if process.execdeadline && process.execdeadline !== '0001-01-01T00:53:28+00:53'}
 							{@render statusBadge(deadlineStatus.label, deadlineStatus.color)}
-							<div class="text-xs text-gray-500 mt-1">
+							<div class="text-xs text-gray-500 dark:text-slate-300 mt-1">
 								{formatDate(process.execdeadline)}
 							</div>
 						{:else}
@@ -179,7 +179,7 @@
 
 					<!-- Duration -->
 					<td class="px-6 py-4 whitespace-nowrap">
-						<div class="text-sm text-gray-900">
+						<div class="text-sm text-gray-900 dark:text-slate-100">
 							{formatDuration(process.starttime, process.endtime)}
 						</div>
 						{#if process.starttime && process.starttime !== '0001-01-01T00:53:28+00:53'}
@@ -194,10 +194,10 @@
 					<!-- Workflow -->
 					<td class="px-6 py-4 whitespace-nowrap">
 						{#if process.processgraphid}
-							<div class="text-sm text-gray-900">
+							<div class="text-sm text-gray-900 dark:text-slate-100">
 								{@render workflowBadge()}
 							</div>
-							<div class="text-xs text-gray-500 font-mono mt-1">
+							<div class="text-xs text-gray-500 dark:text-slate-300 font-mono mt-1">
 								{process.processgraphid.substring(0, 12)}...
 							</div>
 							<div class="text-xs text-gray-400 mt-1">
@@ -222,7 +222,7 @@
 								{/if}
 							</div>
 						{:else}
-							<div class="text-sm text-gray-500">Individual</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300">Individual</div>
 							<div class="text-xs text-gray-400">No workflow</div>
 						{/if}
 					</td>
@@ -232,6 +232,6 @@
 	</table>
 
 	{#if processes.length === 0}
-		<div class="text-center py-8 text-gray-500">No processes found</div>
+		<div class="table-empty">No processes found</div>
 	{/if}
 </div>

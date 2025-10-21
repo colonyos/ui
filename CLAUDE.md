@@ -16,6 +16,52 @@ This is a Colony management dashboard built with SvelteKit 2.x and Svelte 5. The
 - `npm run check:watch` - Type checking in watch mode
 - `npm run lint` - Run ESLint
 
+## Styling and Theming
+
+### Tailwind CSS v4 Configuration
+The application uses Tailwind CSS v4 with the Vite plugin. Key configuration:
+- **Dark Mode**: Uses class-based dark mode with `.dark` class on document root
+- **Dark Mode Variant**: Configured in `src/app.css` with `@variant dark (&:where(.dark, .dark *))`
+- **Color Palette**: Consistent use of slate colors (slate-700, slate-800, slate-100, etc.) for dark mode
+- **Theme Toggle**: Located in bottom left of sidebar, persists preference to localStorage
+
+### Common CSS Classes
+Centralized styling system defined in `src/app.css` under `@layer components`:
+
+**Page Structure:**
+- `.page-header` - Page header container with bottom margin
+- `.page-title` - Page title with consistent sizing and dark mode support
+- `.page-description` - Page description text (currently unused, reserved for future use)
+
+**Table Components:**
+- `.table-container` - Table wrapper with background, shadow, and rounded corners
+- `.table-base` - Base table element with dividers
+- `.table-header` - Table header with background color
+- `.table-header-cell` - Header cell text styling
+- `.table-body` - Table body with background and dividers
+- `.table-row` - Table row with hover effects
+- `.table-empty` - Empty state message styling
+
+**Button Styling:**
+All refresh buttons use consistent classes:
+```
+text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded transition-colors
+```
+
+### Dark Mode Color Patterns
+- **Backgrounds**: `dark:bg-slate-700` for main containers, `dark:bg-slate-600` for headers
+- **Borders**: `dark:border-slate-600` for dividers and borders
+- **Text**: `dark:text-white` for headings, `dark:text-slate-100` for primary text, `dark:text-slate-300` for secondary text
+- **Hover States**: `dark:hover:bg-slate-600` for interactive elements
+- **Status Colors**: Adjusted for dark mode readability (e.g., `dark:text-green-400` instead of `dark:text-green-600`)
+
+### Component Consistency Guidelines
+- All table components use the common CSS classes from `app.css`
+- Refresh buttons are standardized across all pages
+- No colony selection dropdowns (data from all colonies shown together)
+- Process page uses status filter buttons instead of dropdown
+- Theme toggle is icon-only in bottom left corner of sidebar
+
 ## Architecture
 
 ### Colony API Integration
@@ -51,11 +97,13 @@ Each page follows a consistent pattern:
 
 ### Authentication Flow
 Different operations require different private keys:
-- **Server operations** (getColonies, getStatistics, getServerStatus): server private key
+- **Server operations** (getColonies, getStatistics): server private key
 - **Colony operations** (getExecutors, getExecutor, getFunctionsForExecutor, getFunctions, getCrons, getCron, runCron, getGenerators, getProcessGraphs): colony private key
 - **Process operations** (getProcesses, removeAllProcesses, removeProcess): colony private key
 - **Individual process details** (getProcess): general private key (user key)
 - Key types are tracked in ColonyClient for debugging and proper authentication
+
+**Note**: getServerStatus method has been removed from the application
 
 ### Connection Management  
 - **Connection Testing**: Automatic connection validation on app startup
@@ -71,7 +119,8 @@ API responses often need conversion:
 - **Default Value Handling**: Provide sensible defaults for missing API fields
 
 ### State Persistence
-- **Process Filter State**: Processes page saves filter selections (state, workflow, grouping) to localStorage
+- **Process Filter State**: Processes page saves filter selections (state, grouping) to localStorage
+- **Theme State**: Dark/light mode preference persisted via themeStore with localStorage
 - **App State**: Connection settings and keys are persisted via appState store
 
 ### Modal Patterns and Actions
@@ -94,3 +143,12 @@ API responses often need conversion:
 - Test connection status before making API calls
 - Use `$state()` for all reactive variables in Svelte 5 components to avoid reactivity warnings
 - Process deletion may fail for workflow processes - UI should handle this gracefully with warnings and specific error messages
+
+### Styling Best Practices
+- **Use Common Classes**: Prefer the centralized CSS classes from `app.css` for tables and page structure
+- **Dark Mode**: Always include dark mode variants for colors (backgrounds, text, borders)
+- **Slate Palette**: Use slate colors for consistency in dark mode (not gray)
+- **Button Consistency**: Use the standard button classes for all refresh/action buttons
+- **Event Handlers**: Use `on:click` for Svelte 5 (not `onclick` for most cases, except where explicitly needed)
+- **Theme Store**: Access theme state via `themeStore` for dark/light mode
+- **No Dropdowns for Colony Selection**: Show all colony data together without filtering UI

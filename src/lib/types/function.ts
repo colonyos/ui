@@ -65,11 +65,11 @@ export function formatDuration(seconds: number): string {
 
 export function getPerformanceColor(avgTime: number, minTime: number, maxTime: number): string {
 	const range = maxTime - minTime;
-	if (range === 0) return 'text-gray-600';
-	
+	if (range === 0) return 'text-gray-600 dark:text-slate-300';
+
 	const position = (avgTime - minTime) / range;
-	
-	if (position <= 0.3) return 'text-green-600';
-	if (position <= 0.7) return 'text-yellow-600';
-	return 'text-red-600';
+
+	if (position <= 0.3) return 'text-green-600 dark:text-green-400';
+	if (position <= 0.7) return 'text-yellow-600 dark:text-yellow-400';
+	return 'text-red-600 dark:text-red-400';
 }

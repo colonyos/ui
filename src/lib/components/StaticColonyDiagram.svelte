@@ -31,19 +31,29 @@
 	function getStatusColor(status: string, type: 'server' | 'executor'): string {
 		if (type === 'server') {
 			switch (status) {
-				case 'online': return 'bg-green-500';
+				case 'online': return 'bg-emerald-500';
 				case 'offline': return 'bg-red-500';
 				case 'connecting': return 'bg-yellow-500';
 				default: return 'bg-gray-500';
 			}
 		} else {
 			switch (status) {
-				case 'online':
-				case 'idle': return 'bg-green-500';
-				case 'busy': return 'bg-yellow-500';
-				case 'offline': return 'bg-gray-500';
-				default: return 'bg-gray-500';
+				case 'online': return 'bg-emerald-400';  // Light green for online/idle
+				case 'idle': return 'bg-emerald-400';     // Light green for idle
+				case 'busy': return 'bg-orange-500';      // Orange for busy
+				case 'offline': return 'bg-gray-400';     // Gray for offline
+				default: return 'bg-emerald-400';
 			}
+		}
+	}
+
+	function getStatusIcon(status: string): string {
+		switch (status) {
+			case 'busy': return '⚡';
+			case 'idle':
+			case 'online': return '✓';
+			case 'offline': return '○';
+			default: return 'E';
 		}
 	}
 </script>
@@ -51,6 +61,7 @@
 <div class="static-colony-diagram">
 	<div class="diagram-container">
 		{#each data.servers as server, serverIndex}
+			{@const connectedExecutors = data.executors.filter(e => e.serverId === server.id)}
 			<div class="server-group" style="--server-index: {serverIndex}">
 				<!-- Server Node -->
 				<div
@@ -62,11 +73,14 @@
 					<div class="server-info">
 						{server.host}:{server.port}
 					</div>
+					<div class="server-executor-count">
+						{connectedExecutors.length} executor{connectedExecutors.length !== 1 ? 's' : ''}
+					</div>
 				</div>
 
 				<!-- Connected Executors -->
 				<div class="executors-container">
-					{#each data.executors.filter(e => e.serverId === server.id) as executor, executorIndex}
+					{#each connectedExecutors as executor, executorIndex}
 						<div
 							class="executor-connection"
 							style="--executor-index: {executorIndex}"
@@ -78,9 +92,15 @@
 							<div
 								class="executor-node {getStatusColor(executor.status, 'executor')}"
 								onclick={() => handleExecutorClick(executor)}
+								title="{executor.name} - {executor.status}"
 							>
-								<div class="executor-icon">E</div>
+								<div class="executor-icon">{getStatusIcon(executor.status)}</div>
 								<div class="executor-name">{executor.name}</div>
+								{#if executor.processCount !== undefined && executor.processCount > 0}
+									<div class="executor-process-count">
+										{executor.processCount} job{executor.processCount !== 1 ? 's' : ''}
+									</div>
+								{/if}
 								{#if executor.capabilities && executor.capabilities.length > 0}
 									<div class="executor-capabilities">
 										{#each executor.capabilities.slice(0, 2) as capability}
@@ -91,6 +111,12 @@
 							</div>
 						</div>
 					{/each}
+
+					{#if connectedExecutors.length === 0}
+						<div class="no-executors-message">
+							No executors connected
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -144,12 +170,16 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 2rem;
+		gap: 3rem;
+		padding: 1rem;
+		background: white;
+		border-radius: 16px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 	}
 
 	.server-node {
-		width: 140px;
-		height: 80px;
+		width: 160px;
+		height: 90px;
 		border-radius: 12px;
 		color: white;
 		display: flex;
@@ -157,9 +187,10 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		position: relative;
+		z-index: 10;
 	}
 
 	.server-node:hover {
@@ -185,55 +216,80 @@
 		opacity: 0.8;
 	}
 
+	.server-executor-count {
+		font-size: 9px;
+		font-weight: 600;
+		margin-top: 2px;
+		opacity: 0.9;
+		padding: 2px 6px;
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 8px;
+	}
+
+	.no-executors-message {
+		padding: 1rem;
+		color: #64748b;
+		font-size: 0.875rem;
+		font-style: italic;
+		text-align: center;
+	}
+
 	.executors-container {
 		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
+		flex-direction: row;
+		gap: 2rem;
 		align-items: center;
+		justify-content: center;
+		flex-wrap: wrap;
+		width: 100%;
+		padding: 1rem;
 	}
 
 	.executor-connection {
 		position: relative;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 1rem;
+		gap: 0;
 	}
 
 	.connection-line {
-		width: 60px;
-		height: 2px;
-		background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+		width: 3px;
+		height: 60px;
+		background: linear-gradient(180deg, #3b82f6, #60a5fa);
 		position: relative;
+		margin-bottom: 0.5rem;
 	}
 
 	.connection-line::before {
 		content: '';
 		position: absolute;
-		top: 50%;
-		left: 0;
-		width: 6px;
-		height: 6px;
-		background: #64748b;
+		top: 0;
+		left: 50%;
+		width: 10px;
+		height: 10px;
+		background: #3b82f6;
 		border-radius: 50%;
 		transform: translate(-50%, -50%);
+		box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 	}
 
 	.connection-line::after {
 		content: '';
 		position: absolute;
-		top: 50%;
-		right: 0;
+		bottom: -8px;
+		left: 50%;
 		width: 0;
 		height: 0;
-		border-left: 6px solid #64748b;
-		border-top: 4px solid transparent;
-		border-bottom: 4px solid transparent;
-		transform: translateY(-50%);
+		border-left: 6px solid transparent;
+		border-right: 6px solid transparent;
+		border-top: 8px solid #60a5fa;
+		transform: translateX(-50%);
 	}
 
 	.executor-node {
-		width: 100px;
-		height: 100px;
+		width: 110px;
+		height: 110px;
 		transform: rotate(45deg);
 		color: white;
 		display: flex;
@@ -241,14 +297,15 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		position: relative;
+		border: 3px solid rgba(255, 255, 255, 0.3);
 	}
 
 	.executor-node:hover {
-		transform: rotate(45deg) scale(1.05);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		transform: rotate(45deg) scale(1.08);
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 	}
 
 	.executor-node > * {
@@ -257,16 +314,32 @@
 	}
 
 	.executor-icon {
-		font-size: 16px;
+		font-size: 18px;
 		font-weight: bold;
-		margin-bottom: 4px;
+		margin-bottom: 6px;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 
 	.executor-name {
+		font-size: 10px;
+		font-weight: 700;
+		margin-bottom: 3px;
+		line-height: 1.1;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+		max-width: 70px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.executor-process-count {
 		font-size: 8px;
 		font-weight: 600;
 		margin-bottom: 2px;
-		line-height: 1;
+		padding: 1px 4px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 6px;
+		text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 	}
 
 	.executor-capabilities {
