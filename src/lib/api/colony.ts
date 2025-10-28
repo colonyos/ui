@@ -211,6 +211,38 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
+  async submitWorkflowSpec(workflowSpec: {
+    colonyname: string;
+    functionspecs: Array<{
+      nodename: string;
+      funcname: string;
+      args?: any[];
+      kwargs?: Record<string, any>;
+      priority?: number;
+      maxwaittime?: number;
+      maxexectime?: number;
+      maxretries?: number;
+      conditions?: {
+        executortype?: string;
+        dependencies?: string[];
+        [key: string]: any;
+      };
+      label?: string;
+      fs?: any;
+      env?: Record<string, string>;
+      resource?: any;
+      reconciliation?: any;
+    }>;
+  }): Promise<any> {
+    const msg = {
+      msgtype: "submitworkflowspecmsg",
+      spec: workflowSpec
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
   // Executor methods
   async getExecutors(colonyName: string): Promise<any> {
     const msg = {
