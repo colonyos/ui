@@ -148,12 +148,12 @@
 			<button
 				on:click={openAddGeneratorModal}
 				disabled={loadingStatus === 'loading'}
-				class="text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded transition-colors flex items-center gap-1"
+				class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
+				title="Add Generator"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 				</svg>
-				Add Generator
 			</button>
 
 			<!-- Refresh Button -->

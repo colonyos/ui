@@ -161,17 +161,17 @@
 			<strong>Error:</strong> {loadingError}
 		</div>
 	{:else}
-		<div class="flex justify-end gap-3 mb-4">
+		<div class="flex justify-end gap-2 mb-4">
 		<!-- Add Cron Button -->
 		<button
 			on:click={openAddCronModal}
 			disabled={loadingStatus === 'loading' || !colonyClient}
-			class="text-sm bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors flex items-center gap-2"
+			class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
+			title="Add Cron"
 		>
-			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 			</svg>
-			Add Cron
 		</button>
 
 		<!-- Refresh Button -->

@@ -2,6 +2,10 @@
 	import { onMount } from 'svelte';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
+	import CryptoSingleton from '$lib/utils/cryptoSingleton';
+	import { appState } from '$lib/stores/appState';
+	import { envConfig } from '$lib/config/env';
+	import { get } from 'svelte/store';
 
 	interface ServerStatistics {
 		colonies?: number;
@@ -22,18 +26,39 @@
 		[key: string]: any;
 	}
 
-	let statistics: ServerStatistics = {};
-	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'loading';
-	let loadingError = '';
+	let statistics = $state<ServerStatistics>({});
+	let users = $state<any>(null);
+	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('loading');
+	let loadingError = $state('');
 	let serverClient: ColonyClient | null = null;
+	let colonyClient: ColonyClient | null = null;
+
+	// Add user modal state
+	let showAddUserModal = $state(false);
+	let isAddingUser = $state(false);
+	let addUserError = $state('');
+	let newUser = $state({
+		name: '',
+		userid: '',
+		email: '',
+		phone: ''
+	});
+
+	// Generated key pair state
+	let generatedPrivateKey = $state('');
+	let generatedUserId = $state('');
 
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
+		colonyClient = await ClientFactory.getColonyClient();
 		await loadServerData();
 	});
 
 	async function loadServerData() {
+		console.log('loadServerData called');
+
 		if (!serverClient) {
+			console.error('Server client not initialized');
 			loadingError = 'Server client not initialized. Check that host, port, and server private key are configured.';
 			loadingStatus = 'error';
 			return;
@@ -44,8 +69,35 @@
 
 		try {
 			// Load statistics
+			console.log('Loading statistics...');
 			const statsResult = await serverClient.getStatistics();
+			console.log('Statistics loaded:', statsResult);
 			statistics = statsResult || {};
+
+			// Load users if colony client is available
+			if (colonyClient) {
+				const state = get(appState);
+				const colonyName = state.colonyName || envConfig.colonyName;
+				console.log('Colony name:', colonyName);
+
+				if (colonyName) {
+					try {
+						console.log('Loading users...');
+						users = await colonyClient.getUsers(colonyName);
+						console.log('Users loaded:', users);
+					} catch (usersErr) {
+						console.error('Failed to load users:', usersErr);
+						// Don't fail the whole page if users fail to load
+						users = null;
+					}
+				} else {
+					console.warn('No colony name configured, skipping users load');
+				}
+			} else {
+				console.warn('Colony client not initialized, skipping users load');
+			}
+
+			console.log('Setting status to success');
 			loadingStatus = 'success';
 		} catch (err) {
 			console.error('Failed to load server data:', err);
@@ -78,21 +130,120 @@
 			return dateString;
 		}
 	}
+
+	function openAddUserModal() {
+		const state = get(appState);
+		const colonyName = state.colonyName || envConfig.colonyName;
+
+		newUser = {
+			name: '',
+			userid: '',
+			email: '',
+			phone: ''
+		};
+		addUserError = '';
+		generatedPrivateKey = '';
+		generatedUserId = '';
+		showAddUserModal = true;
+	}
+
+	function closeAddUserModal() {
+		showAddUserModal = false;
+		addUserError = '';
+		generatedPrivateKey = '';
+		generatedUserId = '';
+	}
+
+	async function generateKeyPair() {
+		try {
+			const crypto = await CryptoSingleton.getInstance();
+
+			// Generate private key
+			const privateKey = crypto.prvkey();
+
+			// Generate user ID from private key
+			const userId = crypto.id(privateKey);
+
+			// Store the results
+			generatedPrivateKey = privateKey;
+			generatedUserId = userId;
+
+			// Auto-fill the User ID field
+			newUser.userid = userId;
+		} catch (err) {
+			console.error('Failed to generate key pair:', err);
+			addUserError = 'Failed to generate key pair: ' + (err instanceof Error ? err.message : String(err));
+		}
+	}
+
+	async function handleAddUser() {
+		if (!colonyClient) {
+			addUserError = 'Colony client not initialized';
+			return;
+		}
+
+		// Validate required fields
+		if (!newUser.name.trim()) {
+			addUserError = 'Name is required';
+			return;
+		}
+
+		if (!newUser.userid.trim()) {
+			addUserError = 'User ID is required';
+			return;
+		}
+
+		isAddingUser = true;
+		addUserError = '';
+
+		try {
+			const state = get(appState);
+			const colonyName = state.colonyName || envConfig.colonyName;
+
+			await colonyClient.addUser({
+				colonyname: colonyName,
+				userid: newUser.userid.trim(),
+				name: newUser.name.trim(),
+				email: newUser.email.trim(),
+				phone: newUser.phone.trim()
+			});
+
+			// Success - reload users and close modal
+			await loadServerData();
+			closeAddUserModal();
+		} catch (err) {
+			console.error('Failed to add user:', err);
+			addUserError = err instanceof Error ? err.message : String(err);
+		} finally {
+			isAddingUser = false;
+		}
+	}
 </script>
 
 <div class="p-6">
 	<div class="flex justify-between items-center mb-6">
 		<h1 class="page-title">Server</h1>
-		<button
-			on:click={loadServerData}
-			disabled={loadingStatus === 'loading'}
-			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
-			title="Refresh"
-		>
-			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-			</svg>
-		</button>
+		<div class="flex gap-2">
+			<button
+				on:click={openAddUserModal}
+				class="bg-green-600 hover:bg-green-700 text-white p-2 rounded transition-colors"
+				title="Add User"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				</svg>
+			</button>
+			<button
+				on:click={loadServerData}
+				disabled={loadingStatus === 'loading'}
+				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+				title="Refresh"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+				</svg>
+			</button>
+		</div>
 	</div>
 
 	{#if loadingStatus === 'loading'}
@@ -211,13 +362,179 @@
 				</div>
 			</div>
 
-			<!-- Raw Statistics Data (for debugging) -->
-			{#if Object.keys(statistics).length > 0}
-				<div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-6 shadow-sm">
-					<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Raw Statistics</h2>
-					<pre class="text-xs bg-gray-100 dark:bg-slate-800 p-3 rounded overflow-auto max-h-64"><code>{JSON.stringify(statistics, null, 2)}</code></pre>
+			<!-- Users Table -->
+			{#if users && users.length > 0}
+				<div class="bg-white dark:bg-slate-700 rounded-lg p-6 shadow-sm">
+					<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Users</h2>
+					<div class="table-container">
+						<table class="table-base">
+							<thead class="table-header">
+								<tr>
+									<th class="px-4 py-3 text-left table-header-cell">Name</th>
+									<th class="px-4 py-3 text-left table-header-cell">User ID</th>
+									<th class="px-4 py-3 text-left table-header-cell">Email</th>
+									<th class="px-4 py-3 text-left table-header-cell">Phone</th>
+								</tr>
+							</thead>
+							<tbody class="table-body">
+								{#each users as user}
+									<tr class="table-row">
+										<td class="px-4 py-3 text-gray-900 dark:text-slate-100">{user.name || '-'}</td>
+										<td class="px-4 py-3 text-gray-900 dark:text-slate-100">
+											<span class="font-mono text-xs">{user.userid.substring(0, 16)}...</span>
+										</td>
+										<td class="px-4 py-3 text-gray-600 dark:text-slate-300">{user.email || '-'}</td>
+										<td class="px-4 py-3 text-gray-600 dark:text-slate-300">{user.phone || '-'}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
 				</div>
 			{/if}
+		</div>
+	{/if}
+
+	<!-- Add User Modal -->
+	{#if showAddUserModal}
+		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={closeAddUserModal}>
+			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-lg w-full mx-4" on:click={(e) => e.stopPropagation()}>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add New User</h3>
+
+				{#if addUserError}
+					<div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded text-sm">
+						{addUserError}
+					</div>
+				{/if}
+
+				<form on:submit|preventDefault={handleAddUser}>
+					<div class="space-y-4">
+						<!-- Name Field -->
+						<div>
+							<label for="userName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+								Name <span class="text-red-500">*</span>
+							</label>
+							<input
+								id="userName"
+								type="text"
+								bind:value={newUser.name}
+								disabled={isAddingUser}
+								class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-slate-700"
+								placeholder="Enter user name"
+								required
+							/>
+						</div>
+
+						<!-- User ID Field -->
+						<div>
+							<label for="userId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+								User ID <span class="text-red-500">*</span>
+							</label>
+							<input
+								id="userId"
+								type="text"
+								bind:value={newUser.userid}
+								disabled={isAddingUser}
+								class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-slate-700"
+								placeholder="Enter user ID (hash)"
+								required
+							/>
+							<p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Unique identifier for the user</p>
+						</div>
+
+						<!-- Email Field -->
+						<div>
+							<label for="userEmail" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+								Email
+							</label>
+							<input
+								id="userEmail"
+								type="email"
+								bind:value={newUser.email}
+								disabled={isAddingUser}
+								class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-slate-700"
+								placeholder="user@example.com"
+							/>
+						</div>
+
+						<!-- Phone Field -->
+						<div>
+							<label for="userPhone" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+								Phone
+							</label>
+							<input
+								id="userPhone"
+								type="tel"
+								bind:value={newUser.phone}
+								disabled={isAddingUser}
+								class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-slate-700"
+								placeholder="+1234567890"
+							/>
+						</div>
+
+						<!-- Generate Key Pair Button -->
+						<div class="pt-2 border-t border-gray-200 dark:border-slate-600">
+							<button
+								type="button"
+								on:click={generateKeyPair}
+								disabled={isAddingUser}
+								class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded transition-colors"
+							>
+								Generate Key Pair
+							</button>
+							<p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Generate a new private key and user ID</p>
+						</div>
+					</div>
+
+					<!-- Generated Keys Display -->
+					{#if generatedPrivateKey && generatedUserId}
+						<div class="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
+							<h4 class="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-3">Generated Credentials</h4>
+
+							<div class="space-y-3">
+								<!-- User ID -->
+								<div>
+									<label class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
+										User ID (auto-filled above)
+									</label>
+									<div class="bg-white dark:bg-slate-800 rounded p-2 border border-purple-200 dark:border-purple-700">
+										<code class="text-xs text-purple-900 dark:text-purple-200 break-all font-mono">{generatedUserId}</code>
+									</div>
+								</div>
+
+								<!-- Private Key -->
+								<div>
+									<label class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
+										Private Key (save this securely!)
+									</label>
+									<div class="bg-white dark:bg-slate-800 rounded p-2 border border-purple-200 dark:border-purple-700">
+										<code class="text-xs text-purple-900 dark:text-purple-200 break-all font-mono">{generatedPrivateKey}</code>
+									</div>
+									<p class="mt-1 text-xs text-purple-600 dark:text-purple-400">⚠️ Save this private key - it cannot be recovered!</p>
+								</div>
+							</div>
+						</div>
+					{/if}
+
+					<div class="flex justify-end gap-3 mt-6">
+						<button
+							type="button"
+							on:click={closeAddUserModal}
+							disabled={isAddingUser}
+							class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							disabled={isAddingUser}
+							class="px-4 py-2 text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded transition-colors"
+						>
+							{isAddingUser ? 'Adding...' : 'Add User'}
+						</button>
+					</div>
+				</form>
+			</div>
 		</div>
 	{/if}
 </div>
