@@ -251,6 +251,13 @@ export const appStateActions = {
 	// Load from environment variables and localStorage (for persistence)
 	loadFromConfig: async () => {
 		// Start with environment variables (build-time config)
+		console.log('Loading environment configuration:', {
+			host: envConfig.host || '(not set)',
+			port: envConfig.port || '(not set)',
+			colonyName: envConfig.colonyName || '(not set)',
+			tls: envConfig.tls
+		});
+		
 		appState.update(state => ({
 			...state,
 			...envConfig,
