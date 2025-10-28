@@ -185,6 +185,32 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
+  async getUsers(colonyName: string): Promise<any> {
+    const msg = {
+      msgtype: "getusersmsg",
+      colonyname: colonyName
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  async addUser(user: {
+    colonyname: string;
+    userid: string;
+    name: string;
+    email: string;
+    phone: string;
+  }): Promise<any> {
+    const msg = {
+      msgtype: "addusermsg",
+      user: user
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
   // Executor methods
   async getExecutors(colonyName: string): Promise<any> {
     const msg = {
