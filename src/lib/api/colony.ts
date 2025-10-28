@@ -91,19 +91,45 @@ Body: [Could not decode payload]`);
         const errorText = await response.text();
 
         // Try to parse and decode the error response
+        let errorObj;
         try {
-          const errorObj = JSON.parse(errorText);
-          if (errorObj.payload) {
-            const decodedError = JSON.parse(atob(errorObj.payload));
-            const errorMessage = decodedError.message || JSON.stringify(decodedError);
-            console.error(`❌ HTTP error:`, errorMessage);
-            throw new Error(errorMessage);
-          }
-        } catch (e) {
-          // If we can't decode, throw a generic error
-          console.error(`❌ HTTP error:`, errorText);
-          throw new Error('Request failed. Check console for details.');
+          errorObj = JSON.parse(errorText);
+        } catch (parseError) {
+          // Can't parse JSON, fall back to showing HTTP status
+          console.error(`❌ HTTP error (raw):`, errorText);
+          throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
         }
+
+        // Successfully parsed JSON, now try to decode payload
+        if (errorObj.payload) {
+          let decodedPayload;
+          try {
+            decodedPayload = atob(errorObj.payload);
+          } catch (decodeError) {
+            // Failed to decode base64, show the base64 string
+            console.error(`❌ HTTP error (failed to decode base64):`, errorObj.payload);
+            throw new Error(`Error decoding response payload: ${errorObj.payload}`);
+          }
+
+          // Successfully decoded base64, now try to parse as JSON
+          let decodedError;
+          try {
+            decodedError = JSON.parse(decodedPayload);
+          } catch (jsonParseError) {
+            // Decoded successfully but not valid JSON, show the decoded string
+            console.error(`❌ HTTP error (decoded non-JSON):`, decodedPayload);
+            throw new Error(decodedPayload);
+          }
+
+          // Successfully parsed JSON, extract the message field
+          const errorMessage = decodedError.message || JSON.stringify(decodedError);
+          console.error(`❌ HTTP error (status ${decodedError.status || 'unknown'}):`, errorMessage);
+          throw new Error(errorMessage);
+        }
+
+        // No payload field, show the whole error object
+        console.error(`❌ HTTP error (no payload):`, errorObj);
+        throw new Error(JSON.stringify(errorObj));
       }
 
       const responseText = await response.text();
@@ -228,6 +254,38 @@ Body: [Could not decode payload]`);
     const msg = {
       msgtype: "getcronmsg",
       cronid: cronId
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Add a new cron job
+   * @param cronSpec - Cron specification object
+   * @returns Promise resolving to the created cron
+   * Note: This method requires colony private key for authentication
+   */
+  async addCron(cronSpec: any): Promise<any> {
+    const msg = {
+      msgtype: "addcronmsg",
+      cron: cronSpec
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Add a new generator
+   * @param generatorSpec - Generator specification object
+   * @returns Promise resolving to add generator response
+   * Note: This method requires colony private key for authentication
+   */
+  async addGenerator(generatorSpec: any): Promise<any> {
+    const msg = {
+      msgtype: "addgeneratormsg",
+      generator: generatorSpec
     };
 
     const rpcMessage = this.createRPCMsg(msg);
@@ -424,11 +482,6 @@ Body: [Could not decode payload]`);
 
     const rpcMessage = this.createRPCMsg(msg);
     return this.sendRPC(rpcMessage);
-  }
-
-  async getWorkflows() {
-    // TODO: Implement workflows API call - use getProcessGraphs instead
-    throw new Error('Use getProcessGraphs method instead');
   }
 
   /**

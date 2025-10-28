@@ -2,12 +2,9 @@
 	import { onMount } from 'svelte';
 	import ExecutorTable from '$lib/components/ExecutorTable.svelte';
 	import ExecutorDetailsModal from '$lib/components/ExecutorDetailsModal.svelte';
-	import { sampleExecutors } from '$lib/data/sampleExecutors';
-	import { appState } from '$lib/stores/appState';
-	import { envConfig } from '$lib/config/env';
-	import { ColonyClient } from '$lib/api/colony';
-	import Crypto from '$lib/crypto/crypto.js';
+	import type { ColonyClient } from '$lib/api/colony';
 	import type { Executor } from '$lib/types/executor';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface Colony {
 		colonyid: string;
@@ -57,7 +54,6 @@
 	let loadingError = '';
 	let colonies: Colony[] = [];
 	let allExecutors: ApiExecutor[] = [];
-	let crypto: Crypto;
 	let serverClient: ColonyClient | null = null;
 	let colonyClient: ColonyClient | null = null;
 
@@ -66,36 +62,9 @@
 	let selectedExecutorForDetails: Executor | null = null;
 
 	onMount(async () => {
-		// Initialize crypto
-		crypto = new Crypto();
-		await crypto.load();
-		
-		// Get host, port, and TLS setting from app state or environment config
-		const host = $appState.host || envConfig.host;
-		const port = $appState.port || envConfig.port;
-		const tls = ($appState.tls || envConfig.tls) === 'true';
-		
-		// Initialize clients with current host/port values
-		if (host && port) {
-			const endpoint = { host, port };
-			
-			// Server client for server operations (getColonies)
-			serverClient = new ColonyClient(endpoint, crypto, tls);
-			const serverPrivateKey = $appState.serverPrvKey || envConfig.serverPrvKey;
-			if (serverPrivateKey) {
-				serverClient.setPrivateKey(serverPrivateKey, 'server');
-			}
-			
-			// Colony client for colony operations (getExecutors) 
-			colonyClient = new ColonyClient(endpoint, crypto, tls);
-			const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-			if (colonyPrivateKey) {
-				colonyClient.setPrivateKey(colonyPrivateKey, 'colony');
-			}
-
-			// Auto-load data
-			await loadExecutorData();
-		}
+		serverClient = await ClientFactory.getServerClient();
+		colonyClient = await ClientFactory.getColonyClient();
+		await loadExecutorData();
 	});
 
 	async function loadExecutorData() {

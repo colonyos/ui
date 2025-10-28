@@ -10,6 +10,7 @@
         { name: "Workflows", path: "/workflows" },
         { name: "Cron", path: "/cron" },
         { name: "Generators", path: "/generators" },
+        { name: "Deployment", path: "/deployment" },
         { name: "S3 Browser", path: "/s3-browser" },
         { name: "Server", path: "/server" },
     ];

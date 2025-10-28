@@ -8,23 +8,31 @@
 
 	let { functions }: Props = $props();
 
-	function getExecutorTypeColor(type: string | undefined): string {
+	// Hash function to generate a consistent number from a string
+	function hashString(str: string): number {
+		let hash = 0;
+		for (let i = 0; i < str.length; i++) {
+			const char = str.charCodeAt(i);
+			hash = ((hash << 5) - hash) + char;
+			hash = hash & hash; // Convert to 32-bit integer
+		}
+		return Math.abs(hash);
+	}
+
+	// Generate color style based on executor type hash
+	function getExecutorTypeStyle(type: string | undefined): string {
 		if (!type) {
-			return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+			return '--badge-hue: 0;';
 		}
-		switch (type.toLowerCase()) {
-			case 'container':
-				return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-			case 'kubernetes':
-			case 'ice-kubeexecutor':
-				return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-			case 'hpc':
-				return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-			case 'vm':
-				return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-			default:
-				return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-		}
+
+		// Generate hue from hash (0-360 degrees)
+		const hash = hashString(type.toLowerCase());
+		const hue = hash % 360;
+
+		// Set CSS custom property for the hue
+		// Light mode colors will be set via inline style
+		// Dark mode colors will be set via CSS using this variable
+		return `--badge-hue: ${hue}; background-color: hsl(${hue}, 65%, 85%); color: hsl(${hue}, 70%, 30%);`;
 	}
 
 	function getThroughputColor(counter: number): string {
@@ -71,9 +79,8 @@
 						<div class="flex flex-col">
 							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{func.executorname}</div>
 							<span
-								class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {getExecutorTypeColor(
-									func.executortype
-								)}"
+								class="executor-type-badge inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+								style={getExecutorTypeStyle(func.executortype)}
 							>
 								{func.executortype}
 							</span>
@@ -133,3 +140,11 @@
 		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No functions found</div>
 	{/if}
 </div>
+
+<style>
+	/* Dark mode styling for executor type badges using CSS custom property */
+	:global(.dark) .executor-type-badge {
+		background-color: hsl(var(--badge-hue, 0), 50%, 25%) !important;
+		color: hsl(var(--badge-hue, 0), 60%, 75%) !important;
+	}
+</style>

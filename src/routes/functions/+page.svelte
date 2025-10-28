@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import FunctionTable from '$lib/components/FunctionTable.svelte';
-	import { sampleFunctions } from '$lib/data/sampleFunctions';
 	import { appState } from '$lib/stores/appState';
 	import { envConfig } from '$lib/config/env';
-	import { ColonyClient } from '$lib/api/colony';
+	import type { ColonyClient } from '$lib/api/colony';
 	import { convertApiFunction, type ApiFunctionResponse, type Function } from '$lib/types/function';
-	import Crypto from '$lib/crypto/crypto.js';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface Executor {
 		executorid: string;
@@ -18,29 +17,11 @@
 	let loadingError = '';
 	let executors: Executor[] = [];
 	let allFunctions: Function[] = [];
-	let crypto: Crypto;
 	let userClient: ColonyClient | null = null; // Client with colony private key
 
 	onMount(async () => {
-		crypto = new Crypto();
-		await crypto.load();
-		
-		const host = $appState.host || envConfig.host;
-		const port = $appState.port || envConfig.port;
-		const tls = ($appState.tls || envConfig.tls) === 'true';
-		
-		if (host && port) {
-			const endpoint = { host, port };
-			
-			// Colony client for getting executors and functions (using colony private key)
-			userClient = new ColonyClient(endpoint, crypto, tls);
-			const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-			if (colonyPrivateKey) {
-				userClient.setPrivateKey(colonyPrivateKey, 'colony');
-			}
-
-			await loadFunctionData();
-		}
+		userClient = await ClientFactory.getColonyClient();
+		await loadFunctionData();
 	});
 
 	async function loadFunctionData() {

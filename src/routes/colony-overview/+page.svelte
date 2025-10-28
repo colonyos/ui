@@ -1,25 +1,23 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import StaticColonyDiagram from '$lib/components/StaticColonyDiagram.svelte';
+	import { onMount } from 'svelte';
+	import SvelteFlowColonyDiagram from '$lib/components/SvelteFlowColonyDiagram.svelte';
 	import ColonyOverview from '$lib/components/ColonyOverview.svelte';
 	import type { ColonyGraphData, GraphNode, ColonyServer, ColonyExecutor } from '$lib/types/colony-graph';
 	import type { ColonyOverviewData, ExecutorNode, ProcessInfo, ColonyStatistics } from '$lib/types/overview';
 	import { transformColonyAPIToGraphData, createSampleColonyData } from '$lib/utils/colony-data-transformer';
-	import { ColonyClient, ColonyEndpoint, PROCESS_STATE_NOTSET } from '$lib/api/colony';
+	import { PROCESS_STATE_NOTSET } from '$lib/api/colony';
 	import { ProcessState } from '$lib/types/process';
-	import { appState } from '$lib/stores/appState';
-	import Crypto from '$lib/crypto/crypto.js';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	let graphData: ColonyGraphData = $state(createSampleColonyData());
 	let overviewData: ColonyOverviewData | null = $state(null);
 	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
 	let loadingError = $state('');
 	let selectedNode: GraphNode | null = $state(null);
-	let refreshInterval: number | null = null;
+	let executorFunctions: any[] = $state([]);
+	let loadingFunctions = $state(false);
 
 	// Display options
-	let autoRefresh = $state(false);
-	let refreshIntervalDuration = $state(10000);
 	let activeView: 'diagram' | 'details' = $state('details');
 
 	async function loadColonyData() {
@@ -27,43 +25,40 @@
 		loadingError = '';
 
 		try {
-			const crypto = new Crypto();
-			await crypto.load();
-
-			const endpoint = new ColonyEndpoint($appState.host || 'localhost', $appState.port || '50080');
-			const client = new ColonyClient(endpoint, crypto, $appState.tls === 'true');
+			const serverClient = await ClientFactory.getServerClient();
+			const colonyClient = await ClientFactory.getColonyClient();
 
 			// Get data using different keys for different operations
 			let colonies: any[] = [];
 			let executors: any[] = [];
 			let processes: any[] = [];
 
-			// Use server key for getting colonies
-			if ($appState.serverPrvKey) {
-				client.setPrivateKey($appState.serverPrvKey, 'server');
-				try {
-					colonies = await client.getColonies();
-				} catch (e) {
-					console.warn('Failed to get server data:', e);
-				}
+			// Get colonies
+			try {
+				colonies = await serverClient.getColonies();
+			} catch (e) {
+				console.warn('Failed to get server data:', e);
 			}
 
-			// Use colony key for getting executors and processes
-			if ($appState.colonyPrvKey && colonies.length > 0) {
-				client.setPrivateKey($appState.colonyPrvKey, 'colony');
+			// Get executors and processes
+			if (colonies.length > 0) {
 				try {
 					// Get executors for the first colony
 					const colonyName = colonies[0]?.name;
 					if (colonyName) {
-						executors = await client.getExecutors(colonyName);
+						executors = await colonyClient.getExecutors(colonyName);
 
 						// Get processes with different states
-						const runningProcesses = await client.getProcesses(colonyName, 50, 1); // Running
-						const queuedProcesses = await client.getProcesses(colonyName, 50, 0); // Waiting
+						const runningProcesses = await colonyClient.getProcesses(colonyName, 50, 1); // Running
+						const queuedProcesses = await colonyClient.getProcesses(colonyName, 50, 0); // Waiting
+						const successfulProcesses = await colonyClient.getProcesses(colonyName, 50, 2); // Successful
+						const failedProcesses = await colonyClient.getProcesses(colonyName, 50, 3); // Failed
 
 						processes = [
 							...(Array.isArray(runningProcesses) ? runningProcesses : []),
-							...(Array.isArray(queuedProcesses) ? queuedProcesses : [])
+							...(Array.isArray(queuedProcesses) ? queuedProcesses : []),
+							...(Array.isArray(successfulProcesses) ? successfulProcesses : []),
+							...(Array.isArray(failedProcesses) ? failedProcesses : [])
 						];
 					}
 				} catch (e) {
@@ -172,48 +167,41 @@
 		}
 	}
 
-	function handleNodeClick(node: GraphNode) {
+	async function handleNodeClick(node: GraphNode) {
 		selectedNode = node;
+
+		// If it's an executor, fetch its functions
+		if (node.type === 'executor') {
+			loadingFunctions = true;
+			executorFunctions = [];
+
+			try {
+				const colonyClient = await ClientFactory.getColonyClient();
+				const executor = node.data as ColonyExecutor;
+
+				// Get the colony name - the serverId IS the colony name
+				const colonyName = executor.serverId;
+
+				// Fetch functions for this executor
+				const functions = await colonyClient.getFunctionsForExecutor(colonyName, executor.name);
+				executorFunctions = Array.isArray(functions) ? functions : [];
+			} catch (error) {
+				console.error('Failed to load executor functions:', error);
+				executorFunctions = [];
+			} finally {
+				loadingFunctions = false;
+			}
+		}
 	}
 
 	function closeNodeDetails() {
 		selectedNode = null;
-	}
-
-	function toggleAutoRefresh() {
-		autoRefresh = !autoRefresh;
-		if (autoRefresh) {
-			startAutoRefresh();
-		} else {
-			stopAutoRefresh();
-		}
-	}
-
-	function startAutoRefresh() {
-		if (refreshInterval) {
-			clearInterval(refreshInterval);
-		}
-		refreshInterval = setInterval(() => {
-			loadColonyData();
-		}, refreshIntervalDuration);
-	}
-
-	function stopAutoRefresh() {
-		if (refreshInterval) {
-			clearInterval(refreshInterval);
-			refreshInterval = null;
-		}
+		executorFunctions = [];
+		loadingFunctions = false;
 	}
 
 	onMount(() => {
 		loadColonyData();
-		if (autoRefresh) {
-			startAutoRefresh();
-		}
-	});
-
-	onDestroy(() => {
-		stopAutoRefresh();
 	});
 </script>
 
@@ -247,30 +235,8 @@
 						Refresh
 					{/if}
 				</button>
-
-				<button
-					onclick={toggleAutoRefresh}
-					class="btn {autoRefresh ? 'btn-success' : 'btn-secondary'}"
-				>
-					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-					</svg>
-					Auto Refresh: {autoRefresh ? 'ON' : 'OFF'}
-				</button>
-
-				<select
-					bind:value={refreshIntervalDuration}
-					onchange={autoRefresh ? startAutoRefresh : undefined}
-					class="btn btn-secondary"
-					style="padding: 0.5rem 0.75rem;"
-				>
-					<option value={2000}>2s</option>
-					<option value={5000}>5s</option>
-					<option value={10000}>10s</option>
-					<option value={30000}>30s</option>
-					<option value={60000}>60s</option>
-				</select>
 			</div>
+
 		</div>
 	</div>
 
@@ -326,7 +292,7 @@
 		</div>
 
 		<div class="diagram-wrapper">
-			<StaticColonyDiagram
+			<SvelteFlowColonyDiagram
 				data={graphData}
 				onNodeClick={handleNodeClick}
 			/>
@@ -409,12 +375,29 @@
 								<span class="detail-value status-{executor.status}">{executor.status}</span>
 							</div>
 							<div class="detail-item">
-								<span class="detail-label">Capabilities:</span>
-								<div class="capabilities">
-									{#each executor.capabilities as capability}
-										<span class="capability-tag">{capability}</span>
-									{/each}
-								</div>
+								<span class="detail-label">Available Functions:</span>
+								{#if loadingFunctions}
+									<div class="loading-spinner">
+										<svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+										<span>Loading functions...</span>
+									</div>
+								{:else if executorFunctions.length > 0}
+									<div class="functions-list">
+										{#each executorFunctions as func}
+											<div class="function-item">
+												<span class="function-name">{func.funcname || func.functionname || 'Unknown'}</span>
+												{#if func.executortype}
+													<span class="function-type">{func.executortype}</span>
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{:else}
+									<span class="detail-value">No functions available</span>
+								{/if}
 							</div>
 							<div class="detail-item">
 								<span class="detail-label">Process Count:</span>
@@ -614,12 +597,22 @@
 		overflow: hidden;
 	}
 
+	:global(.dark) .graph-container {
+		background: #334155;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	}
+
 	.stats-bar {
 		display: flex;
 		gap: 2rem;
 		padding: 1rem 2rem;
 		background: #f8fafc;
 		border-bottom: 1px solid #e2e8f0;
+	}
+
+	:global(.dark) .stats-bar {
+		background: #475569;
+		border-bottom-color: #64748b;
 	}
 
 	.stat {
@@ -634,15 +627,27 @@
 		font-weight: 500;
 	}
 
+	:global(.dark) .stat-label {
+		color: #cbd5e1;
+	}
+
 	.stat-value {
 		color: #111827;
 		font-weight: 700;
 		font-size: 1.125rem;
 	}
 
+	:global(.dark) .stat-value {
+		color: #f1f5f9;
+	}
+
 	.stat-detail {
 		color: #6b7280;
 		font-size: 0.75rem;
+	}
+
+	:global(.dark) .stat-detail {
+		color: #94a3b8;
 	}
 
 	.diagram-wrapper {
@@ -655,11 +660,20 @@
 		border-top: 1px solid #e2e8f0;
 	}
 
+	:global(.dark) .legend {
+		background: #475569;
+		border-top-color: #64748b;
+	}
+
 	.legend h3 {
 		margin: 0 0 1rem 0;
 		font-size: 0.875rem;
 		font-weight: 600;
 		color: #374151;
+	}
+
+	:global(.dark) .legend h3 {
+		color: #f1f5f9;
 	}
 
 	.legend-items {
@@ -674,6 +688,10 @@
 		gap: 0.5rem;
 		font-size: 0.75rem;
 		color: #6b7280;
+	}
+
+	:global(.dark) .legend-item {
+		color: #cbd5e1;
 	}
 
 	.legend-icon {
@@ -825,6 +843,58 @@
 		border-radius: 0.25rem;
 		font-size: 0.75rem;
 		font-weight: 500;
+	}
+
+	.loading-spinner {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #6b7280;
+		font-size: 0.875rem;
+	}
+
+	.functions-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		max-height: 200px;
+		overflow-y: auto;
+	}
+
+	.function-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem;
+		background: #f3f4f6;
+		border-radius: 0.375rem;
+		font-size: 0.875rem;
+	}
+
+	:global(.dark) .function-item {
+		background: #374151;
+	}
+
+	.function-name {
+		font-weight: 500;
+		color: #111827;
+	}
+
+	:global(.dark) .function-name {
+		color: #f9fafb;
+	}
+
+	.function-type {
+		font-size: 0.75rem;
+		color: #6b7280;
+		padding: 0.125rem 0.375rem;
+		background: #e5e7eb;
+		border-radius: 0.25rem;
+	}
+
+	:global(.dark) .function-type {
+		background: #4b5563;
+		color: #9ca3af;
 	}
 
 	@media (max-width: 1024px) {

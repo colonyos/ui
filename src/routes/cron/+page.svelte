@@ -2,11 +2,10 @@
 	import { onMount } from 'svelte';
 	import CronTable from '$lib/components/CronTable.svelte';
 	import CronDetailsModal from '$lib/components/CronDetailsModal.svelte';
-	import { appState } from '$lib/stores/appState';
-	import { envConfig } from '$lib/config/env';
-	import { ColonyClient } from '$lib/api/colony';
+	import AddCronModal from '$lib/components/AddCronModal.svelte';
+	import type { ColonyClient } from '$lib/api/colony';
 	import type { Cron } from '$lib/types/cron';
-	import Crypto from '$lib/crypto/crypto.js';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface Colony {
 		colonyid: string;
@@ -46,39 +45,18 @@
 	let loadingError = '';
 	let colonies: Colony[] = [];
 	let allCrons: ApiCron[] = [];
-	let crypto: Crypto;
 	let serverClient: ColonyClient | null = null;
 	let colonyClient: ColonyClient | null = null;
 
 	// Modal state
 	let showCronDetails = false;
 	let selectedCronForDetails: Cron | null = null;
+	let showAddCronModal = false;
 
 	onMount(async () => {
-		crypto = new Crypto();
-		await crypto.load();
-		
-		const host = $appState.host || envConfig.host;
-		const port = $appState.port || envConfig.port;
-		const tls = ($appState.tls || envConfig.tls) === 'true';
-		
-		if (host && port) {
-			const endpoint = { host, port };
-			
-			serverClient = new ColonyClient(endpoint, crypto, tls);
-			const serverPrivateKey = $appState.serverPrvKey || envConfig.serverPrvKey;
-			if (serverPrivateKey) {
-				serverClient.setPrivateKey(serverPrivateKey, 'server');
-			}
-			
-			colonyClient = new ColonyClient(endpoint, crypto, tls);
-			const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-			if (colonyPrivateKey) {
-				colonyClient.setPrivateKey(colonyPrivateKey, 'colony');
-			}
-
-			await loadCronData();
-		}
+		serverClient = await ClientFactory.getServerClient();
+		colonyClient = await ClientFactory.getColonyClient();
+		await loadCronData();
 	});
 
 	async function loadCronData() {
@@ -136,6 +114,19 @@
 		selectedCronForDetails = null;
 	}
 
+	function openAddCronModal() {
+		showAddCronModal = true;
+	}
+
+	function closeAddCronModal() {
+		showAddCronModal = false;
+	}
+
+	function handleCronAdded() {
+		// Refresh the cron data after a new cron is added
+		loadCronData();
+	}
+
 	async function handleRunCron(cronId: string) {
 		if (!colonyClient) {
 			console.error('Colony client not initialized');
@@ -170,7 +161,19 @@
 			<strong>Error:</strong> {loadingError}
 		</div>
 	{:else}
-		<div class="flex justify-end mb-4">
+		<div class="flex justify-end gap-3 mb-4">
+		<!-- Add Cron Button -->
+		<button
+			on:click={openAddCronModal}
+			disabled={loadingStatus === 'loading' || !colonyClient}
+			class="text-sm bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors flex items-center gap-2"
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+			</svg>
+			Add Cron
+		</button>
+
 		<!-- Refresh Button -->
 		<button
 			on:click={loadCronData}
@@ -189,9 +192,17 @@
 </div>
 
 <!-- Cron Details Modal -->
-<CronDetailsModal 
-	show={showCronDetails} 
-	cron={selectedCronForDetails} 
+<CronDetailsModal
+	show={showCronDetails}
+	cron={selectedCronForDetails}
 	client={colonyClient}
 	onClose={closeCronDetails}
+/>
+
+<!-- Add Cron Modal -->
+<AddCronModal
+	show={showAddCronModal}
+	client={colonyClient}
+	onClose={closeAddCronModal}
+	onCronAdded={handleCronAdded}
 />

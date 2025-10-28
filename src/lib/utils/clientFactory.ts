@@ -7,26 +7,29 @@ import { get } from 'svelte/store';
 class ClientFactory {
   private static serverClient: ColonyClient | null = null;
   private static colonyClient: ColonyClient | null = null;
-  private static currentEndpoint: string | null = null;
+  private static generalClient: ColonyClient | null = null;
+  private static serverEndpoint: string | null = null;
+  private static colonyEndpoint: string | null = null;
+  private static generalEndpoint: string | null = null;
 
   static async getServerClient(): Promise<ColonyClient> {
     const state = get(appState);
     const host = state.host || envConfig.host;
     const port = state.port || envConfig.port;
     const tls = (state.tls || envConfig.tls) === 'true';
-    const currentEndpointKey = `${host}:${port}:${tls}`;
+    const serverPrivateKey = state.serverPrvKey || envConfig.serverPrvKey;
+    const currentEndpointKey = `${host}:${port}:${tls}:${serverPrivateKey}`;
 
-    if (!ClientFactory.serverClient || ClientFactory.currentEndpoint !== currentEndpointKey) {
+    if (!ClientFactory.serverClient || ClientFactory.serverEndpoint !== currentEndpointKey) {
       const crypto = await CryptoSingleton.getInstance();
       const endpoint = new ColonyEndpoint(host, port);
       ClientFactory.serverClient = new ColonyClient(endpoint, crypto, tls);
-      
-      const serverPrivateKey = state.serverPrvKey || envConfig.serverPrvKey;
+
       if (serverPrivateKey) {
         ClientFactory.serverClient.setPrivateKey(serverPrivateKey, 'server');
       }
-      
-      ClientFactory.currentEndpoint = currentEndpointKey;
+
+      ClientFactory.serverEndpoint = currentEndpointKey;
     }
 
     return ClientFactory.serverClient;
@@ -37,28 +40,54 @@ class ClientFactory {
     const host = state.host || envConfig.host;
     const port = state.port || envConfig.port;
     const tls = (state.tls || envConfig.tls) === 'true';
-    const currentEndpointKey = `${host}:${port}:${tls}`;
+    const colonyPrivateKey = state.colonyPrvKey || envConfig.colonyPrvKey;
+    const currentEndpointKey = `${host}:${port}:${tls}:${colonyPrivateKey}`;
 
-    if (!ClientFactory.colonyClient || ClientFactory.currentEndpoint !== currentEndpointKey) {
+    if (!ClientFactory.colonyClient || ClientFactory.colonyEndpoint !== currentEndpointKey) {
       const crypto = await CryptoSingleton.getInstance();
       const endpoint = new ColonyEndpoint(host, port);
       ClientFactory.colonyClient = new ColonyClient(endpoint, crypto, tls);
-      
-      const colonyPrivateKey = state.colonyPrvKey || envConfig.colonyPrvKey;
+
       if (colonyPrivateKey) {
         ClientFactory.colonyClient.setPrivateKey(colonyPrivateKey, 'colony');
       }
-      
-      ClientFactory.currentEndpoint = currentEndpointKey;
+
+      ClientFactory.colonyEndpoint = currentEndpointKey;
     }
 
     return ClientFactory.colonyClient;
   }
 
+  static async getGeneralClient(): Promise<ColonyClient> {
+    const state = get(appState);
+    const host = state.host || envConfig.host;
+    const port = state.port || envConfig.port;
+    const tls = (state.tls || envConfig.tls) === 'true';
+    const generalPrivateKey = state.executorPrvKey || envConfig.executorPrvKey;
+    const currentEndpointKey = `${host}:${port}:${tls}:${generalPrivateKey}`;
+
+    if (!ClientFactory.generalClient || ClientFactory.generalEndpoint !== currentEndpointKey) {
+      const crypto = await CryptoSingleton.getInstance();
+      const endpoint = new ColonyEndpoint(host, port);
+      ClientFactory.generalClient = new ColonyClient(endpoint, crypto, tls);
+
+      if (generalPrivateKey) {
+        ClientFactory.generalClient.setPrivateKey(generalPrivateKey, 'general');
+      }
+
+      ClientFactory.generalEndpoint = currentEndpointKey;
+    }
+
+    return ClientFactory.generalClient;
+  }
+
   static reset() {
     ClientFactory.serverClient = null;
     ClientFactory.colonyClient = null;
-    ClientFactory.currentEndpoint = null;
+    ClientFactory.generalClient = null;
+    ClientFactory.serverEndpoint = null;
+    ClientFactory.colonyEndpoint = null;
+    ClientFactory.generalEndpoint = null;
     CryptoSingleton.reset();
   }
 }
