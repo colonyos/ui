@@ -48,6 +48,12 @@
 	let generatedPrivateKey = $state('');
 	let generatedUserId = $state('');
 
+	// Delete user state
+	let showDeleteConfirm = $state(false);
+	let userToDelete = $state<any>(null);
+	let isDeletingUser = $state(false);
+	let deleteUserError = $state('');
+
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
@@ -218,6 +224,43 @@
 			isAddingUser = false;
 		}
 	}
+
+	function confirmDeleteUser(user: any) {
+		userToDelete = user;
+		deleteUserError = '';
+		showDeleteConfirm = true;
+	}
+
+	function cancelDeleteUser() {
+		showDeleteConfirm = false;
+		userToDelete = null;
+		deleteUserError = '';
+	}
+
+	async function handleDeleteUser() {
+		if (!colonyClient || !userToDelete) {
+			return;
+		}
+
+		isDeletingUser = true;
+		deleteUserError = '';
+
+		try {
+			const state = get(appState);
+			const colonyName = state.colonyName || envConfig.colonyName;
+
+			await colonyClient.removeUser(colonyName, userToDelete.name);
+
+			// Success - reload users and close modal
+			await loadServerData();
+			cancelDeleteUser();
+		} catch (err) {
+			console.error('Failed to delete user:', err);
+			deleteUserError = err instanceof Error ? err.message : String(err);
+		} finally {
+			isDeletingUser = false;
+		}
+	}
 </script>
 
 <div class="p-6">
@@ -374,6 +417,7 @@
 									<th class="px-4 py-3 text-left table-header-cell">User ID</th>
 									<th class="px-4 py-3 text-left table-header-cell">Email</th>
 									<th class="px-4 py-3 text-left table-header-cell">Phone</th>
+									<th class="px-4 py-3 text-left table-header-cell">Actions</th>
 								</tr>
 							</thead>
 							<tbody class="table-body">
@@ -385,6 +429,22 @@
 										</td>
 										<td class="px-4 py-3 text-gray-600 dark:text-slate-300">{user.email || '-'}</td>
 										<td class="px-4 py-3 text-gray-600 dark:text-slate-300">{user.phone || '-'}</td>
+										<td class="px-4 py-3">
+											<button
+												on:click={() => confirmDeleteUser(user)}
+												class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+												title="Delete User"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+													/>
+												</svg>
+											</button>
+										</td>
 									</tr>
 								{/each}
 							</tbody>
@@ -534,6 +594,54 @@
 						</button>
 					</div>
 				</form>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Delete User Confirmation Modal -->
+	{#if showDeleteConfirm && userToDelete}
+		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={cancelDeleteUser}>
+			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" on:click={(e) => e.stopPropagation()}>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm User Deletion</h3>
+
+				{#if deleteUserError}
+					<div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded text-sm">
+						{deleteUserError}
+					</div>
+				{/if}
+
+				<p class="text-gray-600 dark:text-slate-300 mb-4">
+					Are you sure you want to delete this user?
+				</p>
+				<div class="bg-gray-50 dark:bg-slate-600 rounded p-3 mb-4">
+					<p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Username:</p>
+					<p class="font-semibold text-gray-900 dark:text-white">{userToDelete.name}</p>
+					{#if userToDelete.email}
+						<p class="text-xs text-gray-500 dark:text-slate-400 mt-2 mb-1">Email:</p>
+						<p class="text-sm text-gray-900 dark:text-white">{userToDelete.email}</p>
+					{/if}
+				</div>
+				<p class="text-sm text-gray-600 dark:text-slate-300 mb-6">
+					This action cannot be undone.
+				</p>
+				<div class="flex justify-end gap-3">
+					<button
+						type="button"
+						on:click={cancelDeleteUser}
+						disabled={isDeletingUser}
+						class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						on:click={handleDeleteUser}
+						disabled={isDeletingUser}
+						class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 rounded transition-colors"
+					>
+						{isDeletingUser ? 'Deleting...' : 'Delete User'}
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
