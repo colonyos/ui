@@ -211,6 +211,17 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
+  async removeUser(colonyName: string, name: string): Promise<any> {
+    const msg = {
+      msgtype: "removeusermsg",
+      colonyname: colonyName,
+      name: name
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
   async submitWorkflowSpec(workflowSpec: {
     colonyname: string;
     functionspecs: Array<{
