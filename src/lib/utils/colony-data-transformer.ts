@@ -1,4 +1,5 @@
 import type { ColonyGraphData, ColonyServer, ColonyExecutor, ColonyConnection, ActiveJob, JobFlowAnimation } from '$lib/types/colony-graph';
+import { envConfig } from '$lib/config/env';
 
 export interface ColonyAPIData {
 	colonies: any[];
@@ -19,8 +20,8 @@ export function transformColonyAPIToGraphData(apiData: ColonyAPIData): ColonyGra
 			const server: ColonyServer = {
 				id: colony.name || `server-${index}`,
 				name: colony.name || `Colony ${index + 1}`,
-				host: 'localhost', // This would come from config or API
-				port: '50080', // This would come from config or API
+				host: envConfig.host,
+				port: envConfig.port,
 				status: 'online', // Default, could be enhanced with actual status
 				processCount: 0
 			};
@@ -124,8 +125,8 @@ export function createSampleColonyData(): ColonyGraphData {
 		{
 			id: 'server-1',
 			name: 'Colony Main',
-			host: 'localhost',
-			port: '50080',
+			host: envConfig.host,
+			port: envConfig.port,
 			status: 'online',
 			processCount: 5,
 			lastSeen: new Date(),
@@ -134,8 +135,8 @@ export function createSampleColonyData(): ColonyGraphData {
 		{
 			id: 'server-2',
 			name: 'Colony Worker',
-			host: 'worker.local',
-			port: '50080',
+			host: envConfig.host,
+			port: envConfig.port,
 			status: 'online',
 			processCount: 3,
 			lastSeen: new Date(),

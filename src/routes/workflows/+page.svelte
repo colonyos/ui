@@ -3,8 +3,8 @@
 	import WorkflowDAG from '$lib/components/WorkflowDAG.svelte';
 	import { appState } from '$lib/stores/appState';
 	import { envConfig } from '$lib/config/env';
-	import { ColonyClient } from '$lib/api/colony';
-	import Crypto from '$lib/crypto/crypto.js';
+	import type { ColonyClient } from '$lib/api/colony';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface ProcessGraph {
 		processgraphid: string;
@@ -25,30 +25,13 @@
 	let graphData: any = null;
 	let graphLoadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
 	let graphLoadingError = '';
-	let crypto: Crypto;
 	let colonyClient: ColonyClient | null = null;
 	let colonyName = '';
 
 	onMount(async () => {
-		crypto = new Crypto();
-		await crypto.load();
-
-		const host = $appState.host || envConfig.host;
-		const port = $appState.port || envConfig.port;
-		const tls = ($appState.tls || envConfig.tls) === 'true';
+		colonyClient = await ClientFactory.getColonyClient();
 		colonyName = $appState.colonyName || envConfig.colonyName || '';
-
-		if (host && port) {
-			const endpoint = { host, port };
-
-			colonyClient = new ColonyClient(endpoint, crypto, tls);
-			const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-			if (colonyPrivateKey) {
-				colonyClient.setPrivateKey(colonyPrivateKey, 'colony');
-			}
-
-			await loadWorkflows();
-		}
+		await loadWorkflows();
 	});
 
 	async function loadWorkflows() {
@@ -353,18 +336,21 @@
 				<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={cancelRemove}>
 					<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" on:click={(e) => e.stopPropagation()}>
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm Workflow Deletion</h3>
-						<p class="text-gray-600 mb-6">
+						<p class="text-gray-600 dark:text-slate-300 mb-4">
 							Are you sure you want to delete this workflow?
-							<br><br>
-							<span class="font-mono text-sm text-gray-700">ID: {selectedWorkflow?.processgraphid.substring(0, 20)}...</span>
-							<br><br>
+						</p>
+						<div class="bg-gray-50 dark:bg-slate-600 rounded p-3 mb-4">
+							<p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Workflow ID:</p>
+							<p class="font-mono text-sm text-gray-900 dark:text-white break-all">{selectedWorkflow?.processgraphid}</p>
+						</div>
+						<p class="text-sm text-gray-600 dark:text-slate-300 mb-6">
 							This action cannot be undone.
 						</p>
 						<div class="flex justify-end gap-3">
 							<button
 								on:click={cancelRemove}
 								disabled={isRemoving}
-								class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 dark:bg-slate-800 rounded transition-colors"
+								class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
 							>
 								Cancel
 							</button>

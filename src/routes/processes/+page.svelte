@@ -7,7 +7,8 @@
   import { appState } from "$lib/stores/appState";
   import { envConfig } from "$lib/config/env";
   import { ColonyClient, PROCESS_STATE_NOTSET } from "$lib/api/colony";
-  import Crypto from "$lib/crypto/crypto.js";
+  import ClientFactory from "$lib/utils/clientFactory";
+  import CryptoSingleton from "$lib/utils/cryptoSingleton";
 
   interface Colony {
     colonyid: string;
@@ -40,7 +41,6 @@
   let allProcesses = $state<Process[]>([]);
   let selectedState = $state<number | "">(initialState.selectedState);
   let groupByWorkflow = $state(initialState.groupByWorkflow);
-  let crypto: Crypto;
   let serverClient: ColonyClient | null = null;
   let colonyClient: ColonyClient | null = null;
   let processClient: ColonyClient | null = null; // For getProcess calls
@@ -114,41 +114,28 @@
   });
 
   onMount(async () => {
-    crypto = new Crypto();
-    await crypto.load();
+    serverClient = await ClientFactory.getServerClient();
+    colonyClient = await ClientFactory.getColonyClient();
 
+    // Set up a separate client for getProcess calls with general private key
+    const crypto = await CryptoSingleton.getInstance();
     const host = $appState.host || envConfig.host;
     const port = $appState.port || envConfig.port;
     const tls = ($appState.tls || envConfig.tls) === "true";
+    const endpoint = { host, port };
+    const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
 
-    if (host && port) {
-      const endpoint = { host, port };
-
-      serverClient = new ColonyClient(endpoint, crypto, tls);
-      const serverPrivateKey = $appState.serverPrvKey || envConfig.serverPrvKey;
-      if (serverPrivateKey) {
-        serverClient.setPrivateKey(serverPrivateKey, "server");
-      }
-
-      colonyClient = new ColonyClient(endpoint, crypto, tls);
-      const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-      if (colonyPrivateKey) {
-        colonyClient.setPrivateKey(colonyPrivateKey, "colony");
-      }
-
-      // Set up a separate client for getProcess calls with general private key
-      processClient = new ColonyClient(endpoint, crypto, tls);
-      const generalPrivateKey =
-        $appState.prvKey || envConfig.prvKey || colonyPrivateKey;
-      if (generalPrivateKey) {
-        console.log("Setting up processClient with general private key");
-        processClient.setPrivateKey(generalPrivateKey, "general");
-      } else {
-        console.warn("No general private key available for getProcess calls");
-      }
-
-      await loadProcessData();
+    processClient = new ColonyClient(endpoint, crypto, tls);
+    const generalPrivateKey =
+      $appState.prvKey || envConfig.prvKey || colonyPrivateKey;
+    if (generalPrivateKey) {
+      console.log("Setting up processClient with general private key");
+      processClient.setPrivateKey(generalPrivateKey, "general");
+    } else {
+      console.warn("No general private key available for getProcess calls");
     }
+
+    await loadProcessData();
   });
 
   async function loadProcessData() {
@@ -547,19 +534,34 @@
       <!-- Error Display -->
       {#if removingStatus === "error"}
         <div
-          class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-4"
+          class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4"
         >
-          <strong>Error:</strong>
-          {removeError}
+          <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <div class="flex-1">
+              <strong class="font-semibold">Error:</strong>
+              <p class="mt-1 text-sm break-words">{removeError}</p>
+            </div>
+          </div>
         </div>
       {/if}
 
       <!-- Success Display -->
       {#if removingStatus === "success"}
         <div
-          class="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded mb-4"
+          class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded mb-4"
         >
-          <strong>Success:</strong> Processes removed successfully
+          <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <div class="flex-1">
+              <strong class="font-semibold">Success:</strong>
+              <p class="mt-1 text-sm">Processes removed successfully</p>
+            </div>
+          </div>
         </div>
       {/if}
 

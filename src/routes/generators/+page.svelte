@@ -2,11 +2,10 @@
 	import { onMount } from 'svelte';
 	import GeneratorTable from '$lib/components/GeneratorTable.svelte';
 	import GeneratorDetailsModal from '$lib/components/GeneratorDetailsModal.svelte';
+	import AddGeneratorModal from '$lib/components/AddGeneratorModal.svelte';
 	import type { Generator } from '$lib/types/generator';
-	import { appState } from '$lib/stores/appState';
-	import { envConfig } from '$lib/config/env';
-	import { ColonyClient } from '$lib/api/colony';
-	import Crypto from '$lib/crypto/crypto.js';
+	import type { ColonyClient } from '$lib/api/colony';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface Colony {
 		colonyid: string;
@@ -32,39 +31,18 @@
 	let loadingError = '';
 	let colonies: Colony[] = [];
 	let allGenerators: ApiGenerator[] = [];
-	let crypto: Crypto;
 	let serverClient: ColonyClient | null = null;
 	let colonyClient: ColonyClient | null = null;
 
 	// Modal state
 	let showGeneratorDetails = false;
 	let selectedGeneratorForDetails: Generator | null = null;
+	let showAddGeneratorModal = false;
 
 	onMount(async () => {
-		crypto = new Crypto();
-		await crypto.load();
-		
-		const host = $appState.host || envConfig.host;
-		const port = $appState.port || envConfig.port;
-		const tls = ($appState.tls || envConfig.tls) === 'true';
-		
-		if (host && port) {
-			const endpoint = { host, port };
-			
-			serverClient = new ColonyClient(endpoint, crypto, tls);
-			const serverPrivateKey = $appState.serverPrvKey || envConfig.serverPrvKey;
-			if (serverPrivateKey) {
-				serverClient.setPrivateKey(serverPrivateKey, 'server');
-			}
-			
-			colonyClient = new ColonyClient(endpoint, crypto, tls);
-			const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-			if (colonyPrivateKey) {
-				colonyClient.setPrivateKey(colonyPrivateKey, 'colony');
-			}
-
-			await loadGeneratorData();
-		}
+		serverClient = await ClientFactory.getServerClient();
+		colonyClient = await ClientFactory.getColonyClient();
+		await loadGeneratorData();
 	});
 
 	async function loadGeneratorData() {
@@ -135,6 +113,18 @@
 		showGeneratorDetails = false;
 		selectedGeneratorForDetails = null;
 	}
+
+	function openAddGeneratorModal() {
+		showAddGeneratorModal = true;
+	}
+
+	function closeAddGeneratorModal() {
+		showAddGeneratorModal = false;
+	}
+
+	async function handleGeneratorAdded() {
+		await loadGeneratorData();
+	}
 </script>
 
 <div class="space-y-6">
@@ -153,7 +143,19 @@
 			<strong>Error:</strong> {loadingError}
 		</div>
 	{:else}
-		<div class="flex justify-end mb-4">
+		<div class="flex justify-end gap-2 mb-4">
+			<!-- Add Generator Button -->
+			<button
+				on:click={openAddGeneratorModal}
+				disabled={loadingStatus === 'loading'}
+				class="text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded transition-colors flex items-center gap-1"
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				</svg>
+				Add Generator
+			</button>
+
 			<!-- Refresh Button -->
 			<button
 				on:click={loadGeneratorData}
@@ -172,9 +174,17 @@
 </div>
 
 <!-- Generator Details Modal -->
-<GeneratorDetailsModal 
-	show={showGeneratorDetails} 
-	generator={selectedGeneratorForDetails} 
+<GeneratorDetailsModal
+	show={showGeneratorDetails}
+	generator={selectedGeneratorForDetails}
 	client={colonyClient}
 	onClose={closeGeneratorDetails}
+/>
+
+<!-- Add Generator Modal -->
+<AddGeneratorModal
+	show={showAddGeneratorModal}
+	client={colonyClient}
+	onClose={closeAddGeneratorModal}
+	onGeneratorAdded={handleGeneratorAdded}
 />

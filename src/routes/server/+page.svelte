@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { appState } from '$lib/stores/appState';
-	import { envConfig } from '$lib/config/env';
-	import { ColonyClient } from '$lib/api/colony';
-	import Crypto from '$lib/crypto/crypto.js';
+	import type { ColonyClient } from '$lib/api/colony';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface ServerStatistics {
 		colonies?: number;
@@ -27,27 +25,10 @@
 	let statistics: ServerStatistics = {};
 	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'loading';
 	let loadingError = '';
-	let crypto: Crypto;
 	let serverClient: ColonyClient | null = null;
 
 	onMount(async () => {
-		crypto = new Crypto();
-		await crypto.load();
-
-		const host = $appState.host || envConfig.host;
-		const port = $appState.port || envConfig.port;
-		const tls = ($appState.tls || envConfig.tls) === 'true';
-
-		if (host && port) {
-			const endpoint = { host, port };
-			serverClient = new ColonyClient(endpoint, crypto, tls);
-
-			const serverPrivateKey = $appState.serverPrvKey || envConfig.serverPrvKey;
-			if (serverPrivateKey) {
-				serverClient.setPrivateKey(serverPrivateKey, 'server');
-			}
-		}
-
+		serverClient = await ClientFactory.getServerClient();
 		await loadServerData();
 	});
 

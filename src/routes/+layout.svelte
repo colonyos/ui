@@ -5,15 +5,15 @@
 	import ConnectionError from '$lib/components/ConnectionError.svelte';
 	import { appState, appStateActions } from '$lib/stores/appState';
 	import { themeStore } from '$lib/stores/themeStore';
-	import { ColonyEndpoint, ColonyClient } from '$lib/api/colony';
-	import Crypto from '$lib/crypto/crypto.js';
+	import { ColonyEndpoint } from '$lib/api/colony';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	let { children } = $props();
 
 	// Test connection to colony on mount
 	async function testConnection() {
 		const currentState = $appState;
-		
+
 		if (!currentState.host || !currentState.port) {
 			appStateActions.setConnectionStatus('error', 'Host and port must be configured');
 			return;
@@ -22,18 +22,7 @@
 		appStateActions.setConnectionStatus('connecting');
 
 		try {
-			const crypto = new Crypto();
-			await crypto.load();
-
-			const endpoint = { host: currentState.host, port: currentState.port };
-			const tls = currentState.tls === 'true';
-			const client = new ColonyClient(endpoint, crypto, tls);
-
-			// Set server private key if available
-			const serverPrivateKey = currentState.serverPrvKey;
-			if (serverPrivateKey) {
-				client.setPrivateKey(serverPrivateKey, 'server');
-			}
+			const client = await ClientFactory.getServerClient();
 
 			// Try to get colonies to test connection
 			await client.getColonies();
