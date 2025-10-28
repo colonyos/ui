@@ -3,15 +3,15 @@ import { dev } from '$app/environment';
 // Environment configuration that can be set at build time with VITE_COLONIES_ prefix
 export const envConfig = {
 	// Colony connection variables
-	colonyName: import.meta.env.VITE_COLONIES_COLONY_NAME || 'dev-colony',
+	colonyName: import.meta.env.VITE_COLONIES_COLONY_NAME || '',
 	colonyPrvKey: import.meta.env.VITE_COLONIES_PRVKEY || '',
 	prvKey: import.meta.env.VITE_COLONIES_PRVKEY || '', // General private key (same as colony for now)
 	executorId: import.meta.env.VITE_COLONIES_EXECUTOR_ID || '',
 	executorPrvKey: import.meta.env.VITE_COLONIES_EXECUTOR_PRVKEY || '',
 	serverId: import.meta.env.VITE_COLONIES_SERVER_ID || '',
 	serverPrvKey: import.meta.env.VITE_COLONIES_SERVER_PRVKEY || '',
-	host: import.meta.env.VITE_COLONIES_SERVER_HOST || 'localhost',
-	port: import.meta.env.VITE_COLONIES_SERVER_PORT || '50080',
+	host: import.meta.env.VITE_COLONIES_SERVER_HOST || '',
+	port: import.meta.env.VITE_COLONIES_SERVER_PORT || '',
 	tls: import.meta.env.VITE_COLONIES_SERVER_TLS || 'false',
 	
 	// User information

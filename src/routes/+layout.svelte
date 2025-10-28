@@ -35,41 +35,23 @@
 	}
 
 	// Initialize app state on mount
-	onMount(async () => {
+	onMount(() => {
 		// Initialize theme
 		themeStore.init();
-
-		// Load config file first, then localStorage overrides
-		await appStateActions.loadFromConfig();
 
 		// Subscribe to state changes and persist them
 		const unsubscribe = appState.subscribe((state) => {
 			appStateActions.saveToStorage(state);
 		});
 
-		// Initialize default colony if none exists
-		appState.update(state => {
-			if (!state.colonies && !state.host) {
-				return {
-					...state,
-					host: 'localhost',
-					port: '50080',
-					colonies: new ColonyEndpoint('localhost', '50080')
-				};
-			}
-			return state;
-		});
+		// Load config and test connection
+		(async () => {
+			// Load config file first, then localStorage overrides
+			await appStateActions.loadFromConfig();
 
-		// Test connection after configuration is loaded
-		await testConnection();
-
-		// Add global helper for testing error page (development only)
-		if (typeof window !== 'undefined') {
-			(window as any).testErrorPage = () => {
-				appStateActions.setConnectionStatus('error', 'Manual test of connection error page');
-			};
-			(window as any).testConnection = testConnection;
-		}
+			// Test connection after configuration is loaded
+			await testConnection();
+		})();
 
 		return unsubscribe;
 	});
