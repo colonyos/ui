@@ -118,9 +118,9 @@
 				{@const status = getGeneratorStatus(generator.lastrun, generator.timeout)}
 				{@const queueStatus = getQueueStatus(generator.queuesize)}
 				{@const workflow = parseWorkflowSpec(generator.workflowspec)}
-				<tr 
-					class="table-row {onGeneratorClick ? 'cursor-pointer' : ''}" 
-					on:click={() => onGeneratorClick?.(generator)}
+				<tr
+					class="table-row {onGeneratorClick ? 'cursor-pointer' : ''}"
+					onclick={() => onGeneratorClick?.(generator)}
 				>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">

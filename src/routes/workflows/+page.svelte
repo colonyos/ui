@@ -19,15 +19,15 @@
 		rootprocessids?: string[];
 	}
 
-	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
-	let loadingError = '';
-	let workflows: ProcessGraph[] = [];
-	let selectedWorkflow: ProcessGraph | null = null;
-	let graphData: any = null;
-	let graphLoadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
-	let graphLoadingError = '';
-	let colonyClient: ColonyClient | null = null;
-	let colonyName = '';
+	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let loadingError = $state('');
+	let workflows = $state<ProcessGraph[]>([]);
+	let selectedWorkflow = $state<ProcessGraph | null>(null);
+	let graphData = $state<any>(null);
+	let graphLoadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let graphLoadingError = $state('');
+	let colonyClient = $state<ColonyClient | null>(null);
+	let colonyName = $state('');
 
 	onMount(async () => {
 		colonyClient = await ClientFactory.getColonyClient();
@@ -131,11 +131,11 @@
 		graphLoadingStatus = 'idle';
 	}
 
-	let isRemoving = false;
-	let showRemoveConfirm = false;
-	let showSubmitModal = false;
-	let isSubmitting = false;
-	let submitError = '';
+	let isRemoving = $state(false);
+	let showRemoveConfirm = $state(false);
+	let showSubmitModal = $state(false);
+	let isSubmitting = $state(false);
+	let submitError = $state('');
 
 	async function removeWorkflow() {
 		if (!colonyClient || !selectedWorkflow) {
@@ -228,8 +228,9 @@
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Process Graphs</h2>
 					<div class="flex gap-2">
 						<button
-							on:click={openSubmitModal}
+							onclick={openSubmitModal}
 							disabled={loadingStatus === 'loading'}
+							aria-label="Submit Workflow"
 							class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
 							title="Submit Workflow"
 						>
@@ -238,8 +239,9 @@
 							</svg>
 						</button>
 						<button
-							on:click={loadWorkflows}
+							onclick={loadWorkflows}
 							disabled={loadingStatus === 'loading'}
+							aria-label="Refresh"
 							class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 							title="Refresh"
 						>
@@ -315,7 +317,7 @@
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
 										<button
-											on:click={() => selectWorkflow(workflow)}
+											onclick={() => selectWorkflow(workflow)}
 											class="text-blue-600 hover:text-blue-800 text-sm font-medium"
 										>
 											View DAG →
@@ -333,7 +335,7 @@
 		<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-6">
 			<div class="flex items-center justify-between mb-6">
 				<button
-					on:click={backToList}
+					onclick={backToList}
 					class="flex items-center text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors"
 				>
 					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,8 +345,9 @@
 				</button>
 				<div class="flex gap-2">
 					<button
-						on:click={confirmRemove}
+						onclick={confirmRemove}
 						disabled={isRemoving}
+						aria-label="Delete Workflow"
 						class="bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white p-2 rounded transition-colors"
 						title="Delete Workflow"
 					>
@@ -358,8 +361,9 @@
 						</svg>
 					</button>
 					<button
-						on:click={() => selectWorkflow(selectedWorkflow)}
+						onclick={() => selectWorkflow(selectedWorkflow)}
 						disabled={graphLoadingStatus === 'loading'}
+						aria-label="Refresh"
 						class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 						title="Refresh"
 					>
@@ -372,8 +376,8 @@
 
 			<!-- Confirmation Dialog -->
 			{#if showRemoveConfirm}
-				<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={cancelRemove}>
-					<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" on:click={(e) => e.stopPropagation()}>
+				<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={cancelRemove} onkeydown={(e) => e.key === 'Escape' && cancelRemove()}>
+					<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm Workflow Deletion</h3>
 						<p class="text-gray-600 dark:text-slate-300 mb-4">
 							Are you sure you want to delete this workflow?
@@ -387,14 +391,14 @@
 						</p>
 						<div class="flex justify-end gap-3">
 							<button
-								on:click={cancelRemove}
+								onclick={cancelRemove}
 								disabled={isRemoving}
 								class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
 							>
 								Cancel
 							</button>
 							<button
-								on:click={removeWorkflow}
+								onclick={removeWorkflow}
 								disabled={isRemoving}
 								class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 rounded transition-colors"
 							>

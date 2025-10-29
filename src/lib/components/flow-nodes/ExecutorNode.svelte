@@ -28,7 +28,7 @@
 	}
 </script>
 
-<div class="executor-node" onclick={data.onClick} role="button" tabindex="0">
+<div class="executor-node" onclick={data.onClick} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && data.onClick?.()} role="button" tabindex="0">
 	<Handle type="target" position={Position.Top} />
 	<div class="node-icon">⚙️</div>
 	<div class="node-label">{data.executor.name}</div>

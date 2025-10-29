@@ -127,17 +127,17 @@
 		<div class="toolbar-section">
 			<h3 class="toolbar-title">View</h3>
 			<div class="toolbar-buttons">
-				<button onclick={zoomIn} class="tool-btn-icon" title="Zoom In">
+				<button onclick={zoomIn} class="tool-btn-icon" aria-label="Zoom In" title="Zoom In">
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
 					</svg>
 				</button>
-				<button onclick={zoomOut} class="tool-btn-icon" title="Zoom Out">
+				<button onclick={zoomOut} class="tool-btn-icon" aria-label="Zoom Out" title="Zoom Out">
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
 					</svg>
 				</button>
-				<button onclick={resetZoom} class="tool-btn-icon" title="Reset View">
+				<button onclick={resetZoom} class="tool-btn-icon" aria-label="Reset View" title="Reset View">
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
 					</svg>

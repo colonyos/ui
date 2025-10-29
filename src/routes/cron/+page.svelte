@@ -41,17 +41,17 @@
 		fs?: any;
 	}
 
-	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
-	let loadingError = '';
-	let colonies: Colony[] = [];
-	let allCrons: ApiCron[] = [];
-	let serverClient: ColonyClient | null = null;
-	let colonyClient: ColonyClient | null = null;
+	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let loadingError = $state('');
+	let colonies = $state<Colony[]>([]);
+	let allCrons = $state<ApiCron[]>([]);
+	let serverClient = $state<ColonyClient | null>(null);
+	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
-	let showCronDetails = false;
-	let selectedCronForDetails: Cron | null = null;
-	let showAddCronModal = false;
+	let showCronDetails = $state(false);
+	let selectedCronForDetails = $state<Cron | null>(null);
+	let showAddCronModal = $state(false);
 
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
@@ -142,7 +142,7 @@
 		}
 	}
 
-	$: displayCrons = convertToLegacyFormat(allCrons);
+	let displayCrons = $derived(convertToLegacyFormat(allCrons));
 </script>
 
 <div class="space-y-6">
@@ -164,8 +164,9 @@
 		<div class="flex justify-end gap-2 mb-4">
 		<!-- Add Cron Button -->
 		<button
-			on:click={openAddCronModal}
+			onclick={openAddCronModal}
 			disabled={loadingStatus === 'loading' || !colonyClient}
+			aria-label="Add Cron"
 			class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
 			title="Add Cron"
 		>
@@ -176,8 +177,9 @@
 
 		<!-- Refresh Button -->
 		<button
-			on:click={loadCronData}
+			onclick={loadCronData}
 			disabled={loadingStatus === 'loading'}
+			aria-label="Refresh"
 			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 			title="Refresh"
 		>

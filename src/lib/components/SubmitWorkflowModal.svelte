@@ -91,8 +91,8 @@
 </script>
 
 {#if show}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={handleBackdropClick}>
-		<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" on:click={(e) => e.stopPropagation()}>
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={handleBackdropClick} onkeydown={(e) => e.key === 'Escape' && closeModal()}>
+		<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 			<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Submit Workflow</h3>
 
 			{#if errorMessage}
@@ -101,7 +101,7 @@
 				</div>
 			{/if}
 
-			<form on:submit|preventDefault={handleSubmit}>
+			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
 				<div class="mb-4">
 					<label for="workflowSpec" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
 						Workflow Specification (JSON)
@@ -147,7 +147,7 @@
 				<div class="flex justify-end gap-3">
 					<button
 						type="button"
-						on:click={closeModal}
+						onclick={closeModal}
 						disabled={isSubmitting}
 						class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
 					>

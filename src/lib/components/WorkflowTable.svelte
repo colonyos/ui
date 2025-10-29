@@ -38,7 +38,7 @@
 			{#each workflows as workflow (workflow.processgraphid)}
 				<tr
 					class="table-row {onWorkflowClick ? 'cursor-pointer' : ''}"
-					on:click={() => onWorkflowClick?.(workflow)}
+					onclick={() => onWorkflowClick?.(workflow)}
 				>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">

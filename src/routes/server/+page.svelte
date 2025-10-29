@@ -30,8 +30,8 @@
 	let users = $state<any>(null);
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('loading');
 	let loadingError = $state('');
-	let serverClient: ColonyClient | null = null;
-	let colonyClient: ColonyClient | null = null;
+	let serverClient = $state<ColonyClient | null>(null);
+	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Add user modal state
 	let showAddUserModal = $state(false);
@@ -268,7 +268,8 @@
 		<h1 class="page-title">Server</h1>
 		<div class="flex gap-2">
 			<button
-				on:click={openAddUserModal}
+				onclick={openAddUserModal}
+				aria-label="Add User"
 				class="bg-green-600 hover:bg-green-700 text-white p-2 rounded transition-colors"
 				title="Add User"
 			>
@@ -277,8 +278,9 @@
 				</svg>
 			</button>
 			<button
-				on:click={loadServerData}
+				onclick={loadServerData}
 				disabled={loadingStatus === 'loading'}
+				aria-label="Refresh"
 				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 				title="Refresh"
 			>
@@ -431,7 +433,8 @@
 										<td class="px-4 py-3 text-gray-600 dark:text-slate-300">{user.phone || '-'}</td>
 										<td class="px-4 py-3">
 											<button
-												on:click={() => confirmDeleteUser(user)}
+												onclick={() => confirmDeleteUser(user)}
+												aria-label="Delete User"
 												class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
 												title="Delete User"
 											>
@@ -457,8 +460,8 @@
 
 	<!-- Add User Modal -->
 	{#if showAddUserModal}
-		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={closeAddUserModal}>
-			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-lg w-full mx-4" on:click={(e) => e.stopPropagation()}>
+		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={closeAddUserModal} onkeydown={(e) => e.key === 'Escape' && closeAddUserModal()}>
+			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-lg w-full mx-4" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 				<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add New User</h3>
 
 				{#if addUserError}
@@ -467,7 +470,7 @@
 					</div>
 				{/if}
 
-				<form on:submit|preventDefault={handleAddUser}>
+				<form onsubmit={(e) => { e.preventDefault(); handleAddUser(); }}>
 					<div class="space-y-4">
 						<!-- Name Field -->
 						<div>
@@ -536,7 +539,7 @@
 						<div class="pt-2 border-t border-gray-200 dark:border-slate-600">
 							<button
 								type="button"
-								on:click={generateKeyPair}
+								onclick={generateKeyPair}
 								disabled={isAddingUser}
 								class="w-full px-4 py-2 text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded transition-colors"
 							>
@@ -554,9 +557,9 @@
 							<div class="space-y-3">
 								<!-- User ID -->
 								<div>
-									<label class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
+									<div class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
 										User ID (auto-filled above)
-									</label>
+									</div>
 									<div class="bg-white dark:bg-slate-800 rounded p-2 border border-purple-200 dark:border-purple-700">
 										<code class="text-xs text-purple-900 dark:text-purple-200 break-all font-mono">{generatedUserId}</code>
 									</div>
@@ -564,9 +567,9 @@
 
 								<!-- Private Key -->
 								<div>
-									<label class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
+									<div class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
 										Private Key (save this securely!)
-									</label>
+									</div>
 									<div class="bg-white dark:bg-slate-800 rounded p-2 border border-purple-200 dark:border-purple-700">
 										<code class="text-xs text-purple-900 dark:text-purple-200 break-all font-mono">{generatedPrivateKey}</code>
 									</div>
@@ -579,7 +582,7 @@
 					<div class="flex justify-end gap-3 mt-6">
 						<button
 							type="button"
-							on:click={closeAddUserModal}
+							onclick={closeAddUserModal}
 							disabled={isAddingUser}
 							class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
 						>
@@ -600,8 +603,8 @@
 
 	<!-- Delete User Confirmation Modal -->
 	{#if showDeleteConfirm && userToDelete}
-		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={cancelDeleteUser}>
-			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" on:click={(e) => e.stopPropagation()}>
+		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={cancelDeleteUser} onkeydown={(e) => e.key === 'Escape' && cancelDeleteUser()}>
+			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 max-w-md w-full mx-4" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 				<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm User Deletion</h3>
 
 				{#if deleteUserError}
@@ -627,7 +630,7 @@
 				<div class="flex justify-end gap-3">
 					<button
 						type="button"
-						on:click={cancelDeleteUser}
+						onclick={cancelDeleteUser}
 						disabled={isDeletingUser}
 						class="px-4 py-2 text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-600 hover:bg-gray-200 dark:hover:bg-slate-500 disabled:bg-gray-50 dark:disabled:bg-slate-700 rounded transition-colors"
 					>
@@ -635,7 +638,7 @@
 					</button>
 					<button
 						type="button"
-						on:click={handleDeleteUser}
+						onclick={handleDeleteUser}
 						disabled={isDeletingUser}
 						class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 rounded transition-colors"
 					>

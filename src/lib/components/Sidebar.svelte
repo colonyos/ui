@@ -50,7 +50,7 @@
         <div class="mt-4">
             <button
                 type="button"
-                on:click={toggleTheme}
+                onclick={toggleTheme}
                 class="p-3 rounded-lg transition-colors duration-200 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                 aria-label="Toggle theme"
                 title="Toggle dark/light mode"
