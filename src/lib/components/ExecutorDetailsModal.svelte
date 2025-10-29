@@ -150,7 +150,7 @@
 </script>
 
 {#if show}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick={handleBackdropClick}>
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={handleBackdropClick} onkeydown={(e) => e.key === 'Escape' && onClose()}>
 		<div class="bg-white dark:bg-slate-700 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden">
 			<!-- Header -->
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
@@ -164,6 +164,7 @@
 					</div>
 					<button
 						onclick={onClose}
+						aria-label="Close"
 						class="text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
 					>
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -13,11 +13,11 @@
 		colonyname: string;
 	}
 
-	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
-	let loadingError = '';
-	let executors: Executor[] = [];
-	let allFunctions: Function[] = [];
-	let userClient: ColonyClient | null = null; // Client with colony private key
+	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let loadingError = $state('');
+	let executors = $state<Executor[]>([]);
+	let allFunctions = $state<Function[]>([]);
+	let userClient = $state<ColonyClient | null>(null); // Client with colony private key
 
 	onMount(async () => {
 		userClient = await ClientFactory.getColonyClient();
@@ -82,12 +82,12 @@
 	}
 
 	// Only show real data, no fallback to sample data
-	$: displayFunctions = allFunctions;
+	let displayFunctions = $derived(allFunctions);
 
 	// Calculate statistics
-	$: totalExecutions = displayFunctions.reduce((sum, func) => sum + func.counter, 0);
-	$: avgWaitTime = displayFunctions.length > 0 ? displayFunctions.reduce((sum, func) => sum + func.avgwaittime, 0) / displayFunctions.length : 0;
-	$: avgExecTime = displayFunctions.length > 0 ? displayFunctions.reduce((sum, func) => sum + func.avgexectime, 0) / displayFunctions.length : 0;
+	let totalExecutions = $derived(displayFunctions.reduce((sum, func) => sum + func.counter, 0));
+	let avgWaitTime = $derived(displayFunctions.length > 0 ? displayFunctions.reduce((sum, func) => sum + func.avgwaittime, 0) / displayFunctions.length : 0);
+	let avgExecTime = $derived(displayFunctions.length > 0 ? displayFunctions.reduce((sum, func) => sum + func.avgexectime, 0) / displayFunctions.length : 0);
 
 	function formatDuration(seconds: number): string {
 		if (seconds < 1) {
@@ -125,8 +125,9 @@
 		<div class="flex justify-end mb-4">
 			<!-- Refresh Button -->
 			<button
-				on:click={loadFunctionData}
+				onclick={loadFunctionData}
 				disabled={loadingStatus === 'loading'}
+				aria-label="Refresh"
 				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 				title="Refresh"
 			>

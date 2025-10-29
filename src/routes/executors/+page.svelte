@@ -50,16 +50,16 @@
 		};
 	}
 
-	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
-	let loadingError = '';
-	let colonies: Colony[] = [];
-	let allExecutors: ApiExecutor[] = [];
-	let serverClient: ColonyClient | null = null;
-	let colonyClient: ColonyClient | null = null;
+	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let loadingError = $state('');
+	let colonies = $state<Colony[]>([]);
+	let allExecutors = $state<ApiExecutor[]>([]);
+	let serverClient = $state<ColonyClient | null>(null);
+	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
-	let showExecutorDetails = false;
-	let selectedExecutorForDetails: Executor | null = null;
+	let showExecutorDetails = $state(false);
+	let selectedExecutorForDetails = $state<Executor | null>(null);
 
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
@@ -167,9 +167,9 @@
 	}
 
 	// Use only real data, show spinner when loading
-	$: displayExecutors = convertToLegacyFormat(allExecutors);
+	let displayExecutors = $derived(convertToLegacyFormat(allExecutors));
 
-	$: filteredExecutors = displayExecutors;
+	let filteredExecutors = $derived(displayExecutors);
 </script>
 
 <div class="space-y-6">
@@ -191,8 +191,9 @@
 		<div class="flex justify-end mb-4">
 			<!-- Refresh Button -->
 			<button
-				on:click={loadExecutorData}
+				onclick={loadExecutorData}
 				disabled={loadingStatus === 'loading'}
+				aria-label="Refresh"
 				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 				title="Refresh"
 			>

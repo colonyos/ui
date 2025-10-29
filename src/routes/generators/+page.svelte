@@ -27,17 +27,17 @@
 		checkerperiod: number;
 	}
 
-	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
-	let loadingError = '';
-	let colonies: Colony[] = [];
-	let allGenerators: ApiGenerator[] = [];
-	let serverClient: ColonyClient | null = null;
-	let colonyClient: ColonyClient | null = null;
+	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let loadingError = $state('');
+	let colonies = $state<Colony[]>([]);
+	let allGenerators = $state<ApiGenerator[]>([]);
+	let serverClient = $state<ColonyClient | null>(null);
+	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
-	let showGeneratorDetails = false;
-	let selectedGeneratorForDetails: Generator | null = null;
-	let showAddGeneratorModal = false;
+	let showGeneratorDetails = $state(false);
+	let selectedGeneratorForDetails = $state<Generator | null>(null);
+	let showAddGeneratorModal = $state(false);
 
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
@@ -102,7 +102,7 @@
 		}));
 	}
 
-	$: displayGenerators = convertToLegacyFormat(allGenerators);
+	let displayGenerators = $derived(convertToLegacyFormat(allGenerators));
 
 	function handleGeneratorClick(generator: Generator) {
 		selectedGeneratorForDetails = generator;
@@ -146,8 +146,9 @@
 		<div class="flex justify-end gap-2 mb-4">
 			<!-- Add Generator Button -->
 			<button
-				on:click={openAddGeneratorModal}
+				onclick={openAddGeneratorModal}
 				disabled={loadingStatus === 'loading'}
+				aria-label="Add Generator"
 				class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
 				title="Add Generator"
 			>
@@ -158,8 +159,9 @@
 
 			<!-- Refresh Button -->
 			<button
-				on:click={loadGeneratorData}
+				onclick={loadGeneratorData}
 				disabled={loadingStatus === 'loading'}
+				aria-label="Refresh"
 				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 				title="Refresh"
 			>

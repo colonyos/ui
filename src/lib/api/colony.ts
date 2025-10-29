@@ -63,6 +63,7 @@ export class ColonyClient {
 
   private async sendRPC(rpcMessage: RPCMessage): Promise<any> {
     const url = this.getBaseUrl();
+    const startTime = performance.now();
 
     // Only log in development - consolidated format
     if (import.meta.env.DEV) {
@@ -86,6 +87,13 @@ Body: [Could not decode payload]`);
         },
         body: JSON.stringify(rpcMessage)
       });
+
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+
+      if (import.meta.env.DEV) {
+        console.log(`✅ RPC Response received in ${duration}ms`);
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -158,6 +166,13 @@ Body: [Could not decode payload]`);
 
       return msg;
     } catch (error) {
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      
+      if (import.meta.env.DEV) {
+        console.log(`❌ RPC Error after ${duration}ms`);
+      }
+      
       if (error instanceof Error) {
         throw error;
       }

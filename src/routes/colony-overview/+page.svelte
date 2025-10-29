@@ -326,11 +326,11 @@
 	</div>
 
 	{#if selectedNode && activeView === 'diagram'}
-		<div class="modal-overlay" onclick={closeNodeDetails}>
-			<div class="modal" onclick={(e) => e.stopPropagation()}>
+		<div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={closeNodeDetails} onkeydown={(e) => e.key === 'Escape' && closeNodeDetails()}>
+			<div class="modal" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 				<div class="modal-header">
 					<h3>{selectedNode.type === 'server' ? 'Server Details' : 'Executor Details'}</h3>
-					<button onclick={closeNodeDetails} class="modal-close">
+					<button onclick={closeNodeDetails} aria-label="Close" class="modal-close">
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
 						</svg>
@@ -524,11 +524,6 @@
 		cursor: pointer;
 	}
 
-	.checkbox-label input[type="checkbox"] {
-		width: 1rem;
-		height: 1rem;
-	}
-
 	.btn {
 		display: inline-flex;
 		align-items: center;
@@ -583,11 +578,6 @@
 		border-radius: 0.5rem;
 		color: #dc2626;
 		margin-bottom: 1rem;
-	}
-
-	.error-banner small {
-		margin-left: auto;
-		font-size: 0.75rem;
 	}
 
 	.graph-container {

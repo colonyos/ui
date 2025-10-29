@@ -41,9 +41,9 @@
   let allProcesses = $state<Process[]>([]);
   let selectedState = $state<number | "">(initialState.selectedState);
   let groupByWorkflow = $state(initialState.groupByWorkflow);
-  let serverClient: ColonyClient | null = null;
-  let colonyClient: ColonyClient | null = null;
-  let processClient: ColonyClient | null = null; // For getProcess calls
+  let serverClient = $state<ColonyClient | null>(null);
+  let colonyClient = $state<ColonyClient | null>(null);
+  let processClient = $state<ColonyClient | null>(null); // For getProcess calls
 
   // Remove processes dialog state
   let showRemoveDialog = $state(false);
@@ -303,6 +303,7 @@
         <button
           onclick={openSubmitModal}
           disabled={loadingStatus === "loading" || !colonyClient}
+          aria-label="Submit Process"
           class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
           title="Submit Process"
         >
@@ -325,6 +326,7 @@
         <button
           onclick={openRemoveDialog}
           disabled={loadingStatus === "loading" || !colonyClient}
+          aria-label="Remove All Processes"
           class="bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white p-2 rounded transition-colors"
           title="Remove All Processes"
         >
@@ -347,6 +349,7 @@
         <button
           onclick={loadProcessData}
           disabled={loadingStatus === "loading"}
+          aria-label="Refresh"
           class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
           title="Refresh"
         >
@@ -530,10 +533,11 @@
 
       <!-- State Selection -->
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
+        <label for="remove-state" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
           >Process State</label
         >
         <select
+          id="remove-state"
           bind:value={removeState}
           class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 bg-white dark:bg-slate-600 text-gray-900 dark:text-white"
         >

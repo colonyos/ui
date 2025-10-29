@@ -128,6 +128,7 @@
 		<button
 			onclick={loadObjects}
 			disabled={loading || !isConfigured}
+			aria-label="Refresh"
 			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 			title="Refresh"
 		>

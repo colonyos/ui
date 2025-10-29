@@ -8,7 +8,7 @@
 	let { data }: Props = $props();
 </script>
 
-<div class="server-node" onclick={data.onClick} role="button" tabindex="0">
+<div class="server-node" onclick={data.onClick} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && data.onClick?.()} role="button" tabindex="0">
 	<div class="node-icon">🖥️</div>
 	<div class="node-label">{data.server.name}</div>
 	<div class="node-sublabel">{data.server.host}:{data.server.port}</div>

@@ -13,7 +13,7 @@
   let jsonInput = $state("");
   let submitStatus: "idle" | "submitting" | "success" | "error" = $state("idle");
   let submitError = $state("");
-  let fileInputElement: HTMLInputElement | null = null;
+  let fileInputElement = $state<HTMLInputElement | null>(null);
 
   function handleBackdropClick(event: MouseEvent) {
     if (event.target === event.currentTarget) {
@@ -91,11 +91,17 @@
 {#if show}
   <div
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
     onclick={handleBackdropClick}
+    onkeydown={(e) => e.key === 'Escape' && handleClose()}
   >
     <div
       class="bg-white dark:bg-slate-700 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-hidden"
+      role="presentation"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
     >
       <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
@@ -110,6 +116,7 @@
           </div>
           <button
             onclick={handleClose}
+            aria-label="Close"
             class="text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors"
           >
             <svg
@@ -134,11 +141,13 @@
         <!-- File Upload -->
         <div class="mb-4">
           <label
+            for="file-upload"
             class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
           >
             Upload JSON File
           </label>
           <input
+            id="file-upload"
             type="file"
             accept=".json"
             onchange={handleFileUpload}
@@ -151,12 +160,14 @@
         <div class="mb-4">
           <div class="flex justify-between items-center mb-2">
             <label
+              for="json-input"
               class="block text-sm font-medium text-gray-700 dark:text-slate-300"
             >
               Cron Specification (JSON)
             </label>
           </div>
           <textarea
+            id="json-input"
             bind:value={jsonInput}
             placeholder="Paste your cron specification JSON here"
             rows="10"
