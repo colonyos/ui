@@ -600,4 +600,73 @@ Body: [Could not decode payload]`);
     const rpcMessage = this.createRPCMsg(msg);
     return this.sendRPC(rpcMessage);
   }
+
+  /**
+   * Get filesystem labels for a colony
+   * @param colonyName - Name of the colony
+   * @param name - Optional name filter (empty string for all)
+   * @param exact - Whether to match name exactly (default: false)
+   * @returns Promise resolving to array of filesystem labels
+   * Note: This method requires colony private key for authentication
+   */
+  async getFileLabels(colonyName: string, name: string = "", exact: boolean = false): Promise<any> {
+    const msg = {
+      msgtype: "getfilelabelsmsg",
+      colonyname: colonyName,
+      name: name,
+      exact: exact
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get files for a specific label in a colony
+   * @param colonyName - Name of the colony
+   * @param label - Label to filter files by
+   * @returns Promise resolving to array of file objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getFiles(colonyName: string, label: string): Promise<any> {
+    const msg = {
+      msgtype: "getfilesmsg",
+      colonyname: colonyName,
+      label: label
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get information about a specific file
+   * @param colonyName - Name of the colony
+   * @param options - Either { fileID: string } or { name: string, label: string, latest?: boolean }
+   * @returns Promise resolving to file information
+   * Note: This method requires colony private key for authentication
+   */
+  async getFile(colonyName: string, options: { fileID: string } | { name: string, label: string, latest?: boolean }): Promise<any> {
+    const msg: any = {
+      msgtype: "getfilemsg",
+      colonyname: colonyName
+    };
+
+    if ('fileID' in options) {
+      // Query by file ID
+      msg.fileid = options.fileID;
+      msg.label = "";
+      msg.name = "";
+      msg.latest = false;
+    } else {
+      // Query by name and label
+      msg.fileid = "";
+      msg.label = options.label;
+      msg.name = options.name;
+      msg.latest = options.latest || false;
+    }
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
 }

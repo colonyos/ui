@@ -11,7 +11,7 @@
         { name: "Cron", path: "/cron" },
         { name: "Generators", path: "/generators" },
         { name: "Deployment", path: "/deployment" },
-        { name: "S3 Browser", path: "/s3-browser" },
+        { name: "Files", path: "/filesystem" },
         { name: "Server", path: "/server" },
     ];
 
@@ -34,8 +34,7 @@
                     <li>
                         <a
                             href={tab.path}
-                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {$page
-                                .url.pathname === tab.path
+                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {(tab.path === '/filesystem' ? $page.url.pathname.startsWith('/filesystem') : $page.url.pathname === tab.path)
                                 ? 'bg-blue-600 dark:bg-blue-700 text-white font-semibold shadow-md'
                                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}"
                         >
