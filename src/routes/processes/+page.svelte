@@ -453,51 +453,57 @@
 
       <!-- Process Tables (Grouped or Single) -->
       {#if groupByWorkflow}
-        {#each Object.entries(groupedProcesses) as [workflowId, processes]}
-          <div
-            class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
-          >
-            <div
-              class="px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600"
-            >
-              <div class="flex justify-between items-center">
-                <div>
-                  <h3
-                    class="text-lg font-semibold text-gray-900 dark:text-white"
-                  >
-                    {#if workflowId === "no-workflow"}
-                      Individual Processes
-                    {:else}
-                      Workflow: {workflowId}
-                    {/if}
-                  </h3>
-                  <p class="text-sm text-gray-600 dark:text-slate-300">
-                    {processes.length} process{processes.length === 1
-                      ? ""
-                      : "es"}
-                  </p>
-                </div>
-                {#if workflowId !== "no-workflow"}
-                  <div class="text-xs text-gray-500 dark:text-slate-300">
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="inline-flex px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs"
-                      >
-                        Workflow
-                      </span>
-                      <span
-                        >Dependencies: {processes.filter(
-                          (p) => p.parents.length > 0,
-                        ).length} processes</span
-                      >
-                    </div>
-                  </div>
-                {/if}
-              </div>
-            </div>
-            <ProcessTable {processes} onProcessClick={handleProcessClick} />
+        {#if Object.entries(groupedProcesses).length === 0}
+          <div class="text-center py-8 text-gray-500 dark:text-slate-300">
+            No processes found
           </div>
-        {/each}
+        {:else}
+          {#each Object.entries(groupedProcesses) as [workflowId, processes]}
+            <div
+              class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
+            >
+              <div
+                class="px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600"
+              >
+                <div class="flex justify-between items-center">
+                  <div>
+                    <h3
+                      class="text-lg font-semibold text-gray-900 dark:text-white"
+                    >
+                      {#if workflowId === "no-workflow"}
+                        Individual Processes
+                      {:else}
+                        Workflow: {workflowId}
+                      {/if}
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-slate-300">
+                      {processes.length} process{processes.length === 1
+                        ? ""
+                        : "es"}
+                    </p>
+                  </div>
+                  {#if workflowId !== "no-workflow"}
+                    <div class="text-xs text-gray-500 dark:text-slate-300">
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="inline-flex px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs"
+                        >
+                          Workflow
+                        </span>
+                        <span
+                          >Dependencies: {processes.filter(
+                            (p) => p.parents.length > 0,
+                          ).length} processes</span
+                        >
+                      </div>
+                    </div>
+                  {/if}
+                </div>
+              </div>
+              <ProcessTable {processes} onProcessClick={handleProcessClick} />
+            </div>
+          {/each}
+        {/if}
       {:else}
         <ProcessTable
           processes={filteredProcesses}
