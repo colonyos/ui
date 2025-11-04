@@ -42,6 +42,11 @@
 		</thead>
 		<tbody class="table-body">
 			{#each executors as executor (executor.executorid)}
+				{@const hw = executor.capabilities?.hardware}
+				{@const hasNodes = hw?.nodes}
+				{@const hasCpu = hw?.cpu && hw.cpu !== ''}
+				{@const hasMem = hw?.mem && hw.mem !== ''}
+				{@const hasStorage = hw?.storage && hw.storage !== ''}
 				<tr class="table-row {onExecutorClick ? 'cursor-pointer' : ''}"
 					onclick={() => onExecutorClick?.(executor)}>
 					<td class="px-6 py-4 whitespace-nowrap">
@@ -62,18 +67,22 @@
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="text-sm text-gray-900 dark:text-slate-100">
-							<div>{executor.capabilities.hardware.model}</div>
-							<div class="text-xs text-gray-500 dark:text-slate-300">
-								{executor.capabilities.hardware.nodes} nodes • {executor.capabilities.hardware.cpu}
-							</div>
-							<div class="text-xs text-gray-500 dark:text-slate-300">
-								RAM: {executor.capabilities.hardware.mem} • Storage: {executor.capabilities.hardware
-									.storage}
-							</div>
-							{#if executor.capabilities.hardware.gpu.count > 0}
+							{#if hw?.model && hw.model !== ''}
+								<div>{hw.model}</div>
+							{/if}
+							{#if hasNodes || hasCpu}
 								<div class="text-xs text-gray-500 dark:text-slate-300">
-									GPU: {executor.capabilities.hardware.gpu.count}x {executor.capabilities.hardware
-										.gpu.name} ({executor.capabilities.hardware.gpu.mem})
+									{#if hasNodes}{hw.nodes} nodes{/if}{#if hasNodes && hasCpu} • {/if}{#if hasCpu}{hw.cpu}{/if}
+								</div>
+							{/if}
+							{#if hasMem || hasStorage}
+								<div class="text-xs text-gray-500 dark:text-slate-300">
+									{#if hasMem}RAM: {hw.mem}{/if}{#if hasMem && hasStorage} • {/if}{#if hasStorage}Storage: {hw.storage}{/if}
+								</div>
+							{/if}
+							{#if hw?.gpu?.count && hw.gpu.count > 0}
+								<div class="text-xs text-gray-500 dark:text-slate-300">
+									GPU: {hw.gpu.count}x {hw.gpu.name} • VRAM: {hw.gpu.mem}
 								</div>
 							{/if}
 						</div>
