@@ -269,33 +269,33 @@
 					No workflows found. Create a workflow to see it here.
 				</div>
 			{:else}
-				<div class="overflow-x-auto">
-					<table class="w-full">
-						<thead class="bg-gray-50 dark:bg-slate-600">
-							<tr class="border-b border-gray-200 dark:border-slate-600">
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+				<div class="table-container">
+					<table class="table-base">
+						<thead class="table-header">
+							<tr>
+								<th class="table-header-cell">
 									Workflow ID
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+								<th class="table-header-cell">
 									Initiator
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+								<th class="table-header-cell">
 									Status
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+								<th class="table-header-cell">
 									Processes
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+								<th class="table-header-cell">
 									Submitted
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+								<th class="table-header-cell">
 									Actions
 								</th>
 							</tr>
 						</thead>
-						<tbody class="bg-white dark:bg-slate-700 divide-y divide-gray-200 dark:divide-slate-600">
+						<tbody class="table-body">
 							{#each workflows as workflow}
-								<tr class="hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+								<tr class="table-row">
 									<td class="px-6 py-4 whitespace-nowrap">
 										<span class="font-mono text-xs text-gray-600 dark:text-slate-300">
 											{workflow.processgraphid.substring(0, 12)}...

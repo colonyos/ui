@@ -14,22 +14,22 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Workflow
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					State
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Initiator
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Submitted
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Duration
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Processes
 				</th>
 			</tr>
@@ -76,6 +76,6 @@
 	</table>
 
 	{#if workflows.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No workflows found</div>
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No workflows found</div>
 	{/if}
 </div>
