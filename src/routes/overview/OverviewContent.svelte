@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import SvelteFlowColonyDiagram from '$lib/components/SvelteFlowColonyDiagram.svelte';
 	import ColonyOverview from '$lib/components/ColonyOverview.svelte';
 	import type { ColonyGraphData, GraphNode, ColonyServer, ColonyExecutor } from '$lib/types/colony-graph';
@@ -17,8 +19,8 @@
 	let executorFunctions: any[] = $state([]);
 	let loadingFunctions = $state(false);
 
-	// Display options
-	let activeView: 'diagram' | 'details' = $state('details');
+	// Display options - determine from URL
+	let activeView: 'diagram' | 'details' = $derived($page.url.pathname === '/overview/visual' ? 'diagram' : 'details');
 
 	async function loadColonyData() {
 		loadingStatus = 'loading';
@@ -243,13 +245,13 @@
 	<!-- View Tabs -->
 	<div class="view-tabs">
 		<button
-			onclick={() => activeView = 'details'}
+			onclick={() => goto('/overview')}
 			class="tab {activeView === 'details' ? 'active' : ''}"
 		>
 			📊 Details & Statistics
 		</button>
 		<button
-			onclick={() => activeView = 'diagram'}
+			onclick={() => goto('/overview/visual')}
 			class="tab {activeView === 'diagram' ? 'active' : ''}"
 		>
 			🗺️ Visual Diagram

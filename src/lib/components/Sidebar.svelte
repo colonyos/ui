@@ -3,7 +3,7 @@
     import { themeStore } from "$lib/stores/themeStore";
 
     const tabs = [
-        { name: "Colony Overview", path: "/colony-overview" },
+        { name: "Colony Overview", path: "/overview" },
         { name: "Executors", path: "/executors" },
         { name: "Functions", path: "/functions" },
         { name: "Processes", path: "/processes" },
@@ -34,7 +34,7 @@
                     <li>
                         <a
                             href={tab.path}
-                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {(tab.path === '/filesystem' ? $page.url.pathname.startsWith('/filesystem') : $page.url.pathname === tab.path)
+                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {((tab.path === '/filesystem' ? $page.url.pathname.startsWith('/filesystem') : false) || (tab.path === '/overview' ? $page.url.pathname.startsWith('/overview') : false) || $page.url.pathname === tab.path)
                                 ? 'bg-blue-600 dark:bg-blue-700 text-white font-semibold shadow-md'
                                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}"
                         >

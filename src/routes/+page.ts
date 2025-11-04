@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
 
 export function load() {
-	redirect(302, '/colony-overview');
+	redirect(302, '/overview');
 }
