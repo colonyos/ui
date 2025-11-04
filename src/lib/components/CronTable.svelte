@@ -101,25 +101,25 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Cron Job
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Schedule
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Next Run
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Last Run
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Initiator
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Configuration
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Actions
 				</th>
 			</tr>
@@ -133,7 +133,7 @@
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
 							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{cron.name}</div>
-							<div class="text-sm text-gray-500 dark:text-slate-300 dark:text-slate-300">{cron.cronid}</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300">{cron.cronid}</div>
 							<div class="text-xs text-gray-400 dark:text-slate-400">{cron.colonyname}</div>
 						</div>
 					</td>
@@ -141,7 +141,7 @@
 						<div class="text-sm text-gray-900 dark:text-slate-100">
 							<div class="font-mono">{cron.cronexpression}</div>
 							{#if cron.interval > 0}
-								<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">Interval: {cron.interval}s</div>
+								<div class="text-xs text-gray-500 dark:text-slate-300">Interval: {cron.interval}s</div>
 							{/if}
 							{#if cron.random}
 								<div class="text-xs text-orange-500">Random timing enabled</div>
@@ -178,7 +178,7 @@
 								</div>
 							{/if}
 							{#if cron.checkerperiod > 0}
-								<div class="text-gray-500 dark:text-slate-300 dark:text-slate-300">
+								<div class="text-gray-500 dark:text-slate-300">
 									Check period: {cron.checkerperiod}s
 								</div>
 							{/if}
@@ -211,6 +211,6 @@
 	</table>
 
 	{#if crons.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No cron jobs found</div>
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No cron jobs found</div>
 	{/if}
 </div>

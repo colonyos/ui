@@ -90,25 +90,25 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Generator
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Status
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Trigger
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Queue
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Workflow
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Timing
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Last Activity
 				</th>
 			</tr>
@@ -125,7 +125,7 @@
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
 							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{generator.name}</div>
-							<div class="text-sm text-gray-500 dark:text-slate-300 dark:text-slate-300">{generator.generatorid}</div>
+							<div class="text-sm text-gray-500 dark:text-slate-300">{generator.generatorid}</div>
 							<div class="text-xs text-gray-400 dark:text-slate-400">{generator.initiatorname}</div>
 							<div class="text-xs text-gray-400 dark:text-slate-400">{generator.colonyname}</div>
 						</div>
@@ -175,13 +175,13 @@
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="text-sm text-gray-900 dark:text-slate-100">
-							<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">Timeout:</div>
+							<div class="text-xs text-gray-500 dark:text-slate-300">Timeout:</div>
 							<div>{formatDuration(generator.timeout)}</div>
 						</div>
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="text-sm text-gray-900 dark:text-slate-100">
-							<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">Last run:</div>
+							<div class="text-xs text-gray-500 dark:text-slate-300">Last run:</div>
 							<div>{formatDate(generator.lastrun)}</div>
 						</div>
 						<div class="text-xs text-gray-400 mt-1">
@@ -194,6 +194,6 @@
 	</table>
 
 	{#if generators.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No generators found</div>
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No generators found</div>
 	{/if}
 </div>

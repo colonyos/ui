@@ -48,19 +48,19 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Function
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Executor
 				</th>
-				<th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell text-center">
 					Executions
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Wait Time
 				</th>
-				<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-300 dark:text-slate-200 uppercase tracking-wider">
+				<th class="table-header-cell">
 					Execution Time
 				</th>
 			</tr>
@@ -71,7 +71,7 @@
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="flex flex-col">
 							<div class="text-sm font-medium text-gray-900 dark:text-slate-100">{func.funcname}</div>
-							<div class="text-xs text-gray-500 dark:text-slate-300 dark:text-slate-300">{func.functionid}</div>
+							<div class="text-xs text-gray-500 dark:text-slate-300">{func.functionid}</div>
 							<div class="text-xs text-gray-400 dark:text-slate-400">{func.colonyname}</div>
 						</div>
 					</td>
@@ -94,7 +94,7 @@
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="text-sm space-y-1">
 							<div class="flex justify-between">
-								<span class="text-gray-500 dark:text-slate-300 dark:text-slate-300">Avg:</span>
+								<span class="text-gray-500 dark:text-slate-300">Avg:</span>
 								<span
 									class="font-medium {getPerformanceColor(
 										func.avgwaittime,
@@ -114,7 +114,7 @@
 					<td class="px-6 py-4 whitespace-nowrap">
 						<div class="text-sm space-y-1">
 							<div class="flex justify-between">
-								<span class="text-gray-500 dark:text-slate-300 dark:text-slate-300">Avg:</span>
+								<span class="text-gray-500 dark:text-slate-300">Avg:</span>
 								<span
 									class="font-medium {getPerformanceColor(
 										func.avgexectime,
@@ -137,7 +137,7 @@
 	</table>
 
 	{#if functions.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300 dark:text-slate-300">No functions found</div>
+		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No functions found</div>
 	{/if}
 </div>
 
