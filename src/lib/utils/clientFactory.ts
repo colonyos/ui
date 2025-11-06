@@ -63,7 +63,7 @@ class ClientFactory {
     const host = state.host || envConfig.host;
     const port = state.port || envConfig.port;
     const tls = (state.tls || envConfig.tls) === 'true';
-    const generalPrivateKey = state.executorPrvKey || envConfig.executorPrvKey;
+    const generalPrivateKey = state.prvKey || envConfig.prvKey;
     const currentEndpointKey = `${host}:${port}:${tls}:${generalPrivateKey}`;
 
     if (!ClientFactory.generalClient || ClientFactory.generalEndpoint !== currentEndpointKey) {
@@ -72,7 +72,7 @@ class ClientFactory {
       ClientFactory.generalClient = new ColonyClient(endpoint, crypto, tls);
 
       if (generalPrivateKey) {
-        ClientFactory.generalClient.setPrivateKey(generalPrivateKey, 'general');
+        ClientFactory.generalClient.setPrivateKey(generalPrivateKey, 'user');
       }
 
       ClientFactory.generalEndpoint = currentEndpointKey;

@@ -340,9 +340,9 @@
 										<span class="font-medium text-blue-700 dark:text-blue-300">Exec Deadline:</span>
 										<span class="text-blue-900 dark:text-blue-100 ml-2">{formatDate(processDetails.execdeadline)}</span>
 									</div>
-									<div>
+									<div class="col-span-1 md:col-span-2">
 										<span class="font-medium text-blue-700 dark:text-blue-300">Assigned Executor:</span>
-										<span class="text-blue-900 dark:text-blue-100 ml-2">{processDetails.assignedexecutorid || 'Not assigned'}</span>
+										<div class="text-blue-900 dark:text-blue-100 ml-2 text-xs font-mono break-all">{processDetails.assignedexecutorid || 'Not assigned'}</div>
 									</div>
 									<div>
 										<span class="font-medium text-blue-700 dark:text-blue-300">Wait for Parents:</span>
