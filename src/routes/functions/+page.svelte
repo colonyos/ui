@@ -22,6 +22,7 @@
   let executors = $state<Executor[]>([]);
   let allFunctions = $state<Function[]>([]);
   let userClient = $state<ColonyClient | null>(null); // Client with colony private key
+  let expandedExecutors = $state<Record<string, boolean>>({}); // Track which executors are expanded
 
   onMount(async () => {
     userClient = await ClientFactory.getColonyClient();
@@ -107,6 +108,19 @@
       {} as Record<string, Function[]>,
     );
   });
+
+  // Initialize expanded state for new executors using $effect
+  $effect(() => {
+    Object.keys(groupedFunctions).forEach((executorName) => {
+      if (!(executorName in expandedExecutors)) {
+        expandedExecutors[executorName] = true;
+      }
+    });
+  });
+
+  function toggleExecutor(executorName: string) {
+    expandedExecutors[executorName] = !expandedExecutors[executorName];
+  }
 </script>
 
 <div class="space-y-6">
@@ -165,24 +179,46 @@
         <div
           class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
         >
-          <div
-            class="px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600"
+          <button
+            onclick={() => toggleExecutor(executorName)}
+            class="w-full px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-500 transition-colors"
           >
             <div class="flex justify-between items-center">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              <div class="flex items-center space-x-2">
+                <svg
+                  class="w-5 h-5 text-gray-600 dark:text-slate-300 transition-transform {expandedExecutors[
+                    executorName
+                  ]
+                    ? 'rotate-90'
+                    : ''}"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                <h3
+                  class="text-lg font-semibold text-gray-900 dark:text-white text-left"
+                >
                   {executorName}
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-slate-300">
-                  {functions.length} function{functions.length === 1 ? "" : "s"}
-                </p>
               </div>
+              <span class="text-sm text-gray-500 dark:text-slate-400">
+                {functions.length}
+                {functions.length === 1 ? "function" : "functions"}
+              </span>
             </div>
-          </div>
-          <FunctionTable {functions} />
+          </button>
+          {#if expandedExecutors[executorName]}
+            <FunctionTable {functions} />
+          {/if}
         </div>
       {/each}
     {/if}
   {/if}
 </div>
-

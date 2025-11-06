@@ -32,6 +32,7 @@
 	let loadingError = $state('');
 	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
+	let userClient = $state<ColonyClient | null>(null); // For addUser calls with user private key
 
 	// Add user modal state
 	let showAddUserModal = $state(false);
@@ -57,6 +58,7 @@
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
+		userClient = await ClientFactory.getGeneralClient();
 		await loadServerData();
 	});
 
@@ -89,8 +91,9 @@
 				if (colonyName) {
 					try {
 						console.log('Loading users...');
-						users = await colonyClient.getUsers(colonyName);
-						console.log('Users loaded:', users);
+						const usersResult = await colonyClient.getUsers(colonyName);
+						console.log('Users loaded:', usersResult);
+						users = usersResult;
 					} catch (usersErr) {
 						console.error('Failed to load users:', usersErr);
 						// Don't fail the whole page if users fail to load
@@ -183,8 +186,8 @@
 	}
 
 	async function handleAddUser() {
-		if (!colonyClient) {
-			addUserError = 'Colony client not initialized';
+		if (!userClient) {
+			addUserError = 'User client not initialized';
 			return;
 		}
 
@@ -206,7 +209,7 @@
 			const state = get(appState);
 			const colonyName = state.colonyName || envConfig.colonyName;
 
-			await colonyClient.addUser({
+			await userClient.addUser({
 				colonyname: colonyName,
 				userid: newUser.userid.trim(),
 				name: newUser.name.trim(),
