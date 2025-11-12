@@ -569,6 +569,35 @@ Body: [Could not decode payload]`);
   }
 
   /**
+   * Get logs for a process
+   * @param colonyName - Name of the colony
+   * @param processId - ID of the process
+   * @param executorName - Name of the executor
+   * @param count - Number of log messages to retrieve (default: 100)
+   * @param since - Unix nanosecond timestamp to get logs after (default: 0)
+   * @returns Promise resolving to the log messages
+   */
+  async getProcessLogs(
+    colonyName: string,
+    processId: string,
+    executorName: string,
+    count: number = 100,
+    since: number = 0
+  ): Promise<any> {
+    const msg = {
+      msgtype: "getlogsmsg",
+      colonyname: colonyName,
+      processid: processId,
+      executorname: executorName,
+      count: count,
+      since: since
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
    * Remove a process graph (workflow)
    * @param processGraphId - ID of the process graph to remove
    * @returns Promise resolving to the removal response
@@ -664,6 +693,211 @@ Body: [Could not decode payload]`);
       msg.label = options.label;
       msg.name = options.name;
       msg.latest = options.latest || false;
+    }
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Add a blueprint to the colony
+   * @param blueprint - Blueprint object to add
+   * @returns Promise resolving to the API response
+   * Note: This method requires colony private key for authentication
+   */
+  async addBlueprint(blueprint: any): Promise<any> {
+    const msg = {
+      msgtype: "addblueprintmsg",
+      blueprint: blueprint
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get blueprints filtered by namespace and/or kind
+   * @param namespace - Namespace (colony name) to filter by
+   * @param kind - Optional kind to filter by (e.g., "DockerDeployment")
+   * @returns Promise resolving to array of blueprint objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprints(namespace: string, kind: string = ""): Promise<any> {
+    const msg: any = {
+      msgtype: "getblueprintsmsg",
+      namespace: namespace,
+      kind: kind
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get all blueprints for a colony (no kind filter)
+   * @param colonyName - Colony name (used as namespace)
+   * @returns Promise resolving to array of blueprint objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getAllBlueprints(colonyName: string): Promise<any> {
+    return this.getBlueprints(colonyName, "");
+  }
+
+  /**
+   * Get blueprints by namespace
+   * @param namespace - Namespace (colony name) to filter by
+   * @returns Promise resolving to array of blueprint objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprintsByNamespace(namespace: string): Promise<any> {
+    return this.getBlueprints(namespace, "");
+  }
+
+  /**
+   * Get blueprints by kind
+   * @param namespace - Namespace (colony name)
+   * @param kind - Kind to filter by (e.g., "DockerDeployment")
+   * @returns Promise resolving to array of blueprint objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprintsByKind(namespace: string, kind: string): Promise<any> {
+    return this.getBlueprints(namespace, kind);
+  }
+
+  /**
+   * Get a specific blueprint by ID or by name and namespace
+   * @param options - Either { blueprintId: string } or { name: string, namespace: string }
+   * @returns Promise resolving to blueprint object
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprint(options: { blueprintId: string } | { name: string; namespace: string }): Promise<any> {
+    const msg: any = {
+      msgtype: "getblueprintmsg"
+    };
+
+    if ('blueprintId' in options) {
+      // Query by blueprint ID
+      msg.blueprintid = options.blueprintId;
+    } else {
+      // Query by name and namespace
+      msg.name = options.name;
+      msg.namespace = options.namespace;
+    }
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get a specific blueprint by name and namespace
+   * @param name - Name of the blueprint
+   * @param namespace - Namespace of the blueprint
+   * @returns Promise resolving to blueprint object
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprintByName(name: string, namespace: string): Promise<any> {
+    return this.getBlueprint({ name, namespace });
+  }
+
+  /**
+   * Remove a specific blueprint
+   * @param blueprintId - ID of the blueprint to remove
+   * @returns Promise resolving to the API response
+   * Note: This method requires colony private key for authentication
+   */
+  async removeBlueprint(blueprintId: string): Promise<any> {
+    const msg = {
+      msgtype: "removeblueprintmsg",
+      blueprintid: blueprintId
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get a specific blueprint definition by name for a colony
+   * @param colonyName - Name of the colony
+   * @param name - Name of the blueprint definition
+   * @returns Promise resolving to blueprint definition object
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprintDefinition(colonyName: string, name: string): Promise<any> {
+    const msg = {
+      msgtype: "getblueprintdefinitionmsg",
+      colonyname: colonyName,
+      name: name
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get all blueprint definitions for a colony
+   * @param colonyName - Name of the colony
+   * @returns Promise resolving to array of blueprint definition objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprintDefinitions(colonyName: string): Promise<any> {
+    const msg = {
+      msgtype: "getblueprintdefinitionsmsg",
+      colonyname: colonyName
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Add a blueprint definition to a colony
+   * @param blueprintDefinition - Blueprint definition object to add
+   * @returns Promise resolving to the created blueprint definition
+   * Note: This method requires colony private key for authentication (colony owner)
+   */
+  async addBlueprintDefinition(blueprintDefinition: any): Promise<any> {
+    const msg = {
+      msgtype: "addblueprintdefinitionmsg",
+      blueprintdefinition: blueprintDefinition
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Remove a blueprint definition from a colony
+   * @param namespace - Namespace (colony name) of the blueprint definition
+   * @param name - Name of the blueprint definition to remove
+   * @returns Promise resolving to the API response
+   * Note: This method requires colony private key for authentication (colony owner)
+   */
+  async removeBlueprintDefinition(namespace: string, name: string): Promise<any> {
+    const msg = {
+      msgtype: "removeblueprintdefinitionmsg",
+      namespace: namespace,
+      name: name
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
+   * Get the history of changes for a specific blueprint
+   * @param blueprintId - ID of the blueprint
+   * @param limit - Optional limit on number of history entries to retrieve
+   * @returns Promise resolving to array of blueprint history objects
+   * Note: This method requires colony private key for authentication
+   */
+  async getBlueprintHistory(blueprintId: string, limit?: number): Promise<any> {
+    const msg: any = {
+      msgtype: "getblueprinthistorymsg",
+      blueprintid: blueprintId
+    };
+
+    if (limit !== undefined) {
+      msg.limit = limit;
     }
 
     const rpcMessage = this.createRPCMsg(msg);

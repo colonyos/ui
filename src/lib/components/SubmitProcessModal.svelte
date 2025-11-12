@@ -86,20 +86,6 @@
       submitStatus = "error";
     }
   }
-
-  function loadSampleSpec() {
-    const sample = {
-      conditions: {
-        executortype: "cli",
-      },
-      func: "sleep",
-      args: ["3"],
-      env: {
-        TEST: "testenv",
-      },
-    };
-    jsonInput = JSON.stringify(sample, null, 2);
-  }
 </script>
 
 {#if show}
@@ -169,20 +155,12 @@
 
         <!-- JSON Text Input -->
         <div class="mb-4">
-          <div class="flex justify-between items-center mb-2">
-            <label
-              for="process-json-input"
-              class="block text-sm font-medium text-gray-700 dark:text-slate-300"
-            >
-              Process Specification (JSON)
-            </label>
-            <button
-              onclick={loadSampleSpec}
-              class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-            >
-              Load sample
-            </button>
-          </div>
+          <label
+            for="process-json-input"
+            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
+          >
+            Process Specification (JSON)
+          </label>
           <textarea
             id="process-json-input"
             bind:value={jsonInput}

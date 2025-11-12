@@ -153,6 +153,31 @@
       onClose();
     }
   }
+
+  function hasHardwareData(hardware: any): boolean {
+    if (!hardware) return false;
+
+    // Check if any meaningful hardware data exists
+    const hasModel = hardware.model && hardware.model !== "";
+    const hasNodes = hardware.nodes && hardware.nodes > 0;
+    const hasCpu = hardware.cpu && hardware.cpu !== "";
+    const hasMem = hardware.mem && hardware.mem !== "";
+    const hasStorage = hardware.storage && hardware.storage !== "";
+    const hasGpu = hardware.gpu && hardware.gpu.count > 0;
+
+    return hasModel || hasNodes || hasCpu || hasMem || hasStorage || hasGpu;
+  }
+
+  function hasSoftwareData(software: any): boolean {
+    if (!software) return false;
+
+    // Check if any meaningful software data exists
+    const hasName = software.name && software.name !== "";
+    const hasType = software.type && software.type !== "";
+    const hasVersion = software.version && software.version !== "";
+
+    return hasName || hasType || hasVersion;
+  }
 </script>
 
 {#if show}
@@ -333,7 +358,7 @@
             {/if}
 
             <!-- Hardware Capabilities -->
-            {#if executorDetails.capabilities?.hardware}
+            {#if executorDetails.capabilities?.hardware && hasHardwareData(executorDetails.capabilities.hardware)}
               <div>
                 <h4
                   class="text-md font-medium text-gray-900 dark:text-white mb-3"
@@ -424,7 +449,7 @@
             {/if}
 
             <!-- Software Capabilities -->
-            {#if executorDetails.capabilities?.software}
+            {#if executorDetails.capabilities?.software && hasSoftwareData(executorDetails.capabilities.software)}
               <div>
                 <h4
                   class="text-md font-medium text-gray-900 dark:text-white mb-3"
