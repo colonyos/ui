@@ -3,11 +3,12 @@
 
 	interface Props {
 		blueprints: (Blueprint | BlueprintDefinition)[];
+		showDefinitionColumns?: boolean; // Show Group/Version/Scope columns for definitions
 		onBlueprintClick?: (blueprint: Blueprint | BlueprintDefinition) => void;
 		onRemoveBlueprint?: (blueprint: Blueprint | BlueprintDefinition) => void;
 	}
 
-	let { blueprints, onBlueprintClick, onRemoveBlueprint }: Props = $props();
+	let { blueprints, showDefinitionColumns = true, onBlueprintClick, onRemoveBlueprint }: Props = $props();
 
 	function formatDate(dateString?: string): string {
 		if (!dateString || dateString === '0001-01-01T00:00:00Z') {
@@ -41,15 +42,24 @@
 				<th class="table-header-cell">
 					Colony
 				</th>
-				<th class="table-header-cell">
-					Group
-				</th>
-				<th class="table-header-cell">
-					Version
-				</th>
-				<th class="table-header-cell">
-					Scope
-				</th>
+				{#if showDefinitionColumns}
+					<th class="table-header-cell">
+						Group
+					</th>
+					<th class="table-header-cell">
+						Version
+					</th>
+					<th class="table-header-cell">
+						Scope
+					</th>
+				{:else}
+					<th class="table-header-cell">
+						Replicas
+					</th>
+					<th class="table-header-cell">
+						Last Reconciliation
+					</th>
+				{/if}
 				<th class="table-header-cell">
 					Actions
 				</th>
@@ -87,20 +97,32 @@
 						{blueprint.metadata.namespace || '-'}
 					</td>
 
-					<!-- Group (from spec.group) -->
-					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300 font-mono">
-						{(blueprint.spec as any)?.group || '-'}
-					</td>
+					{#if showDefinitionColumns}
+						<!-- Group (from spec.group) -->
+						<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300 font-mono">
+							{(blueprint.spec as any)?.group || '-'}
+						</td>
 
-					<!-- Version (from spec.version) -->
-					<td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-slate-100">
-						{(blueprint.spec as any)?.version || '-'}
-					</td>
+						<!-- Version (from spec.version) -->
+						<td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-slate-100">
+							{(blueprint.spec as any)?.version || '-'}
+						</td>
 
-					<!-- Scope (from spec.scope) -->
-					<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
-						{(blueprint.spec as any)?.scope || '-'}
-					</td>
+						<!-- Scope (from spec.scope) -->
+						<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
+							{(blueprint.spec as any)?.scope || '-'}
+						</td>
+					{:else}
+						<!-- Replicas (from spec.replicas) -->
+						<td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-slate-100">
+							{(blueprint.spec as any)?.replicas !== undefined ? (blueprint.spec as any).replicas : '-'}
+						</td>
+
+						<!-- Last Reconciliation Time -->
+						<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
+							{formatDate(blueprint.metadata.lastReconciliationTime)}
+						</td>
+					{/if}
 
 					<!-- Actions -->
 					<td class="px-6 py-4 whitespace-nowrap">

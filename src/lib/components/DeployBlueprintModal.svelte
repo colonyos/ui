@@ -42,7 +42,12 @@
 			Object.entries(spec.schema.properties).forEach(([propName, propDef]: [string, any]) => {
 				// Set default values
 				if (propDef.default !== undefined) {
-					newFormValues[propName] = propDef.default;
+					// For objects/arrays, convert default to JSON string for textarea binding
+					if (propDef.type === 'object' || propDef.type === 'array') {
+						newFormValues[propName] = JSON.stringify(propDef.default, null, 2);
+					} else {
+						newFormValues[propName] = propDef.default;
+					}
 				} else if (propDef.type === 'string') {
 					newFormValues[propName] = '';
 				} else if (propDef.type === 'number' || propDef.type === 'integer') {
@@ -50,9 +55,9 @@
 				} else if (propDef.type === 'boolean') {
 					newFormValues[propName] = false;
 				} else if (propDef.type === 'array') {
-					newFormValues[propName] = [];
+					newFormValues[propName] = '[]';
 				} else if (propDef.type === 'object') {
-					newFormValues[propName] = {};
+					newFormValues[propName] = '{}';
 				}
 			});
 		}
@@ -97,6 +102,28 @@
 		deployError = '';
 
 		try {
+			// Build the spec, parsing JSON strings for objects and arrays
+			const processedSpec: Record<string, any> = {};
+			const properties = spec?.schema?.properties || {};
+
+			for (const [fieldName, fieldValue] of Object.entries(formValues)) {
+				const fieldDef = properties[fieldName];
+				const fieldType = fieldDef?.type;
+
+				// Parse JSON strings back to objects/arrays
+				if (fieldType === 'object' || fieldType === 'array') {
+					try {
+						processedSpec[fieldName] = JSON.parse(fieldValue as string);
+					} catch (error) {
+						deployError = `Invalid JSON in field "${fieldName}": ${error instanceof Error ? error.message : String(error)}`;
+						deployStatus = 'error';
+						return;
+					}
+				} else {
+					processedSpec[fieldName] = fieldValue;
+				}
+			}
+
 			// Build the blueprint object to deploy
 			const blueprintToCreate = {
 				kind: kind,
@@ -104,7 +131,7 @@
 					name: blueprintName.trim(),
 					namespace: blueprintNamespace.trim()
 				},
-				spec: { ...formValues }
+				spec: processedSpec
 			};
 
 			// Call addBlueprint to create the instance
@@ -128,6 +155,21 @@
 		if (event.target === event.currentTarget) {
 			onClose();
 		}
+	}
+
+	function getSortedSchemaProperties(properties: any, required: string[]): [string, any][] {
+		const entries = Object.entries(properties);
+		return entries.sort(([nameA], [nameB]) => {
+			const aIsRequired = required.includes(nameA);
+			const bIsRequired = required.includes(nameB);
+
+			// Required fields first
+			if (aIsRequired && !bIsRequired) return -1;
+			if (!aIsRequired && bIsRequired) return 1;
+
+			// Alphabetically within each group
+			return nameA.localeCompare(nameB);
+		});
 	}
 
 	function renderFormField(propName: string, propDef: any, required: string[]) {
@@ -236,7 +278,7 @@
 						<div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
 							<h4 class="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-3">Specification</h4>
 							<div class="space-y-4">
-								{#each Object.entries((blueprintDefinition.spec as any).schema.properties) as [propName, propDef]}
+								{#each getSortedSchemaProperties((blueprintDefinition.spec as any).schema.properties, (blueprintDefinition.spec as any).schema.required || []) as [propName, propDef]}
 									{@const fieldInfo = renderFormField(propName, propDef, (blueprintDefinition.spec as any).schema.required || [])}
 									{@const isRequired = ((blueprintDefinition.spec as any).schema.required || []).includes(propName)}
 
