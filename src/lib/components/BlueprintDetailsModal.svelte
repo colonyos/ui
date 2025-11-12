@@ -2,6 +2,7 @@
 	import type { Blueprint, BlueprintDefinition } from '$lib/types/blueprint';
 	import { ColonyClient } from '$lib/api/colony';
 	import DeployBlueprintModal from './DeployBlueprintModal.svelte';
+	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface Props {
 		show: boolean;
@@ -17,6 +18,11 @@
 	let blueprintDetails: Blueprint | BlueprintDefinition | null = $state(null);
 	let showDeployModal = $state(false);
 	let showFullSpec = $state(false);
+	let isDefinition = $state(false);
+
+	// Reconciliation process state
+	let reconciliationProcess: any = $state(null);
+	let reconciliationProcessLoading = $state(false);
 
 	$effect(() => {
 		if (show && blueprint && client) {
@@ -31,23 +37,58 @@
 		loadingStatus = 'loading';
 		loadingError = '';
 		blueprintDetails = null;
+		reconciliationProcess = null;
 
 		try {
-			// Get blueprint definition by namespace (colony name) and name
+			// Determine if this is a blueprint definition or instance
+			isDefinition = 'blueprintdefinitionid' in blueprint;
+
 			if (blueprint.metadata.name && blueprint.metadata.namespace) {
-				const result = await client.getBlueprintDefinition(
-					blueprint.metadata.namespace,
-					blueprint.metadata.name
-				);
+				let result;
+				if (isDefinition) {
+					// Get blueprint definition by namespace (colony name) and name
+					result = await client.getBlueprintDefinition(
+						blueprint.metadata.namespace,
+						blueprint.metadata.name
+					);
+				} else {
+					// Get blueprint instance by name and namespace
+					result = await client.getBlueprintByName(
+						blueprint.metadata.name,
+						blueprint.metadata.namespace
+					);
+				}
 				blueprintDetails = result;
 				loadingStatus = 'success';
+
+				// Load reconciliation process if this is an instance
+				if (!isDefinition && blueprintDetails.metadata?.lastReconciliationProcess) {
+					await loadReconciliationProcess(blueprintDetails.metadata.lastReconciliationProcess);
+				}
 			} else {
-				throw new Error('Blueprint definition has no name or namespace');
+				throw new Error('Blueprint has no name or namespace');
 			}
 		} catch (error) {
-			console.error('Failed to load blueprint definition details:', error);
+			console.error('Failed to load blueprint details:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
 			loadingStatus = 'error';
+		}
+	}
+
+	async function loadReconciliationProcess(processId: string) {
+		if (!processId) return;
+
+		reconciliationProcessLoading = true;
+		try {
+			const generalClient = await ClientFactory.getGeneralClient();
+			const process = await generalClient.getProcess(processId);
+			reconciliationProcess = process;
+		} catch (error) {
+			console.error('Failed to load reconciliation process:', error);
+			// Don't fail the whole modal if we can't load the process
+			reconciliationProcess = null;
+		} finally {
+			reconciliationProcessLoading = false;
 		}
 	}
 
@@ -58,90 +99,44 @@
 		return new Date(dateString).toLocaleString();
 	}
 
-	function generateExampleBlueprint(blueprintDef: Blueprint | BlueprintDefinition | null): string {
-		if (!blueprintDef) return '{}';
-
-		const spec = (blueprintDef.spec as any);
-		const kind = spec?.names?.kind || 'Resource';
-		const namespace = blueprintDef.metadata?.namespace || 'default';
-
-		const example: any = {
-			kind: kind,
-			metadata: {
-				name: `my-${kind.toLowerCase()}`,
-				namespace: namespace
-			}
-		};
-
-		// Generate spec from schema properties
-		if (spec?.schema?.properties) {
-			const exampleSpec: any = {};
-			const properties = spec.schema.properties;
-			const required = spec.schema.required || [];
-
-			Object.entries(properties).forEach(([propName, propDef]: [string, any]) => {
-				// Generate example value based on type
-				let exampleValue: any;
-
-				switch (propDef.type) {
-					case 'string':
-						if (propDef.enum && propDef.enum.length > 0) {
-							exampleValue = propDef.enum[0];
-						} else if (propDef.description?.includes('image')) {
-							exampleValue = 'myregistry/my-image:latest';
-						} else if (propDef.description?.includes('type')) {
-							exampleValue = 'my-type';
-						} else {
-							exampleValue = `example-${propName}`;
-						}
-						break;
-					case 'number':
-					case 'integer':
-						exampleValue = propDef.default !== undefined ? propDef.default : 1;
-						break;
-					case 'boolean':
-						exampleValue = propDef.default !== undefined ? propDef.default : false;
-						break;
-					case 'array':
-						if (propDef.items?.type === 'object') {
-							// For array of objects, show one example
-							const objExample: any = {};
-							if (propDef.items.properties) {
-								Object.entries(propDef.items.properties).forEach(([key, val]: [string, any]) => {
-									if (val.type === 'string') {
-										objExample[key] = val.enum ? val.enum[0] : `example-${key}`;
-									} else if (val.type === 'number') {
-										objExample[key] = 8080;
-									}
-								});
-							}
-							exampleValue = [objExample];
-						} else {
-							exampleValue = [`item1`, `item2`];
-						}
-						break;
-					case 'object':
-						exampleValue = {
-							"KEY1": "value1",
-							"KEY2": "value2"
-						};
-						break;
-					default:
-						exampleValue = null;
-				}
-
-				// Include if required or has a default
-				if (required.includes(propName) || propDef.default !== undefined) {
-					exampleSpec[propName] = exampleValue;
-				}
-			});
-
-			if (Object.keys(exampleSpec).length > 0) {
-				example.spec = exampleSpec;
-			}
+	function getProcessStateColor(state?: number): string {
+		switch (state) {
+			case 0: // Waiting
+				return 'text-yellow-700 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30';
+			case 1: // Running
+				return 'text-blue-700 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30';
+			case 2: // Successful
+				return 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30';
+			case 3: // Failed
+				return 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/30';
+			default:
+				return 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30';
 		}
+	}
 
-		return JSON.stringify(example, null, 2);
+	function getProcessStateName(state?: number): string {
+		switch (state) {
+			case 0: return 'Waiting';
+			case 1: return 'Running';
+			case 2: return 'Successful';
+			case 3: return 'Failed';
+			default: return 'Unknown';
+		}
+	}
+
+	function getSortedSchemaProperties(properties: any, required: string[]): [string, any][] {
+		const entries = Object.entries(properties);
+		return entries.sort(([nameA], [nameB]) => {
+			const aIsRequired = required.includes(nameA);
+			const bIsRequired = required.includes(nameB);
+
+			// Required fields first
+			if (aIsRequired && !bIsRequired) return -1;
+			if (!aIsRequired && bIsRequired) return 1;
+
+			// Alphabetically within each group
+			return nameA.localeCompare(nameB);
+		});
 	}
 
 	function handleBackdropClick(event: MouseEvent) {
@@ -171,7 +166,9 @@
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
 				<div class="flex justify-between items-start">
 					<div>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Blueprint Definition Details</h3>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+							{isDefinition ? 'Blueprint Definition Details' : 'Blueprint Details'}
+						</h3>
 						{#if blueprint}
 							<p class="text-sm text-gray-600 dark:text-slate-300 mt-1">{blueprint.metadata.name}</p>
 							<p class="text-xs text-gray-400 dark:text-slate-400 font-mono">
@@ -204,8 +201,9 @@
 					</div>
 				{:else if loadingStatus === 'success' && blueprintDetails}
 					<div class="space-y-6">
-						<!-- CRD Information -->
-						<div>
+						{#if isDefinition}
+							<!-- CRD Information (Definitions only) -->
+							<div>
 							<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">CRD Information</h4>
 							<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 space-y-2">
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -270,7 +268,7 @@
 								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Schema Properties</h4>
 								<div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
 									<div class="space-y-3">
-										{#each Object.entries((blueprintDetails.spec as any).schema.properties) as [propName, propSpec]}
+										{#each getSortedSchemaProperties((blueprintDetails.spec as any).schema.properties, (blueprintDetails.spec as any).schema.required || []) as [propName, propSpec]}
 											<div class="border-b border-purple-200 dark:border-purple-700 pb-3 last:border-b-0 last:pb-0">
 												<div class="flex items-start gap-2">
 													<span class="font-semibold text-purple-900 dark:text-purple-100">{propName}</span>
@@ -299,48 +297,156 @@
 								</div>
 							</div>
 						{/if}
+					{:else}
+						<!-- Blueprint Instance Information -->
+						<div>
+							<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Blueprint Information</h4>
+							<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 space-y-2">
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+									<div>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Name:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{blueprintDetails.metadata.name}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Colony:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{blueprintDetails.metadata.namespace || '-'}</span>
+									</div>
+									<div>
+										<span class="font-medium text-gray-700 dark:text-slate-300">Kind:</span>
+										<span class="text-gray-900 dark:text-white ml-2">{blueprintDetails.kind || '-'}</span>
+									</div>
+									{#if blueprintDetails.metadata.createdAt}
+										<div>
+											<span class="font-medium text-gray-700 dark:text-slate-300">Created:</span>
+											<span class="text-gray-900 dark:text-white ml-2">{formatDate(blueprintDetails.metadata.createdAt)}</span>
+										</div>
+									{/if}
+									{#if blueprintDetails.metadata.updatedAt}
+										<div>
+											<span class="font-medium text-gray-700 dark:text-slate-300">Updated:</span>
+											<span class="text-gray-900 dark:text-white ml-2">{formatDate(blueprintDetails.metadata.updatedAt)}</span>
+										</div>
+									{/if}
+									{#if blueprintDetails.metadata.generation}
+										<div>
+											<span class="font-medium text-gray-700 dark:text-slate-300">Generation:</span>
+											<span class="text-gray-900 dark:text-white ml-2">{blueprintDetails.metadata.generation}</span>
+										</div>
+									{/if}
+									{#if blueprintDetails.metadata.lastReconciliationTime}
+										<div>
+											<span class="font-medium text-gray-700 dark:text-slate-300">Last Reconciliation:</span>
+											<span class="text-gray-900 dark:text-white ml-2">{formatDate(blueprintDetails.metadata.lastReconciliationTime)}</span>
+										</div>
+									{/if}
+									{#if blueprintDetails.metadata.lastReconciliationProcess}
+										<div>
+											<span class="font-medium text-gray-700 dark:text-slate-300">Reconciliation Status:</span>
+											{#if reconciliationProcessLoading}
+												<span class="ml-2 text-gray-500 dark:text-slate-400 text-xs">Loading...</span>
+											{:else if reconciliationProcess}
+												<span class="ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full {getProcessStateColor(reconciliationProcess.state)}">
+													{getProcessStateName(reconciliationProcess.state)}
+												</span>
+											{:else}
+												<span class="ml-2 text-gray-500 dark:text-slate-400 text-xs">Unknown</span>
+											{/if}
+										</div>
+									{/if}
+								</div>
+								{#if blueprintDetails.metadata.lastReconciliationProcess}
+									<div class="mt-3 pt-3 border-t border-gray-200 dark:border-slate-500">
+										<div class="text-xs">
+											<span class="font-medium text-gray-700 dark:text-slate-300">Last Reconciliation Process:</span>
+											<div class="mt-1 font-mono text-gray-600 dark:text-slate-400 break-all">
+												{blueprintDetails.metadata.lastReconciliationProcess}
+											</div>
+										</div>
+									</div>
+								{/if}
+							</div>
+						</div>
 
-						<!-- Example Blueprint -->
-						{#if (blueprintDetails.spec as any)?.schema?.properties}
+						<!-- Spec Details -->
+						{#if (blueprintDetails.spec as any) && Object.keys(blueprintDetails.spec as any).length > 0}
 							<div>
-								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Example Blueprint</h4>
-								<div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-									<p class="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
-										This is an example of a blueprint that can be created from this definition. Copy and modify it to create your own resource.
-									</p>
-									<div class="bg-white dark:bg-slate-800 rounded border border-yellow-200 dark:border-yellow-800 p-4">
-										<pre class="text-yellow-900 dark:text-yellow-100 font-mono text-xs whitespace-pre-wrap overflow-x-auto">{generateExampleBlueprint(blueprintDetails)}</pre>
+								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Specification</h4>
+								<div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+										{#if (blueprintDetails.spec as any).replicas !== undefined}
+											<div>
+												<span class="font-medium text-purple-700 dark:text-purple-300">Replicas:</span>
+												<span class="text-purple-900 dark:text-purple-100 ml-2">{(blueprintDetails.spec as any).replicas}</span>
+											</div>
+										{/if}
+										{#if (blueprintDetails.spec as any).executorType}
+											<div>
+												<span class="font-medium text-purple-700 dark:text-purple-300">Executor Type:</span>
+												<span class="text-purple-900 dark:text-purple-100 ml-2">{(blueprintDetails.spec as any).executorType}</span>
+											</div>
+										{/if}
+										{#if (blueprintDetails.spec as any).image}
+											<div class="md:col-span-2">
+												<span class="font-medium text-purple-700 dark:text-purple-300">Image:</span>
+												<div class="text-purple-900 dark:text-purple-100 mt-1 font-mono text-xs break-all">
+													{(blueprintDetails.spec as any).image}
+												</div>
+											</div>
+										{/if}
+										{#if (blueprintDetails.spec as any).cpu}
+											<div>
+												<span class="font-medium text-purple-700 dark:text-purple-300">CPU:</span>
+												<span class="text-purple-900 dark:text-purple-100 ml-2">{(blueprintDetails.spec as any).cpu}</span>
+											</div>
+										{/if}
+										{#if (blueprintDetails.spec as any).memory}
+											<div>
+												<span class="font-medium text-purple-700 dark:text-purple-300">Memory:</span>
+												<span class="text-purple-900 dark:text-purple-100 ml-2">{(blueprintDetails.spec as any).memory}</span>
+											</div>
+										{/if}
 									</div>
 								</div>
 							</div>
 						{/if}
 
-						<!-- Full Specification (Raw JSON) - Collapsible -->
-						{#if blueprintDetails.spec && Object.keys(blueprintDetails.spec).length > 0}
+						<!-- Status Information (if available) -->
+						{#if (blueprintDetails as any).status && Object.keys((blueprintDetails as any).status).length > 0}
 							<div>
-								<button
-									onclick={() => showFullSpec = !showFullSpec}
-									class="w-full flex items-center justify-between text-md font-medium text-gray-900 dark:text-white mb-3 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
-								>
-									<span>Full Specification (JSON)</span>
-									<svg
-										class="w-5 h-5 transition-transform {showFullSpec ? 'rotate-180' : ''}"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-									</svg>
-								</button>
-								{#if showFullSpec}
-									<div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-										<div class="bg-white dark:bg-slate-800 rounded border border-green-200 dark:border-green-800 p-4 text-xs">
-											<pre class="text-green-900 dark:text-green-100 font-mono whitespace-pre-wrap overflow-x-auto">{JSON.stringify(blueprintDetails.spec, null, 2)}</pre>
-										</div>
-									</div>
-								{/if}
+								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Status</h4>
+								<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+									<pre class="text-blue-900 dark:text-blue-100 font-mono text-xs whitespace-pre-wrap overflow-x-auto">{JSON.stringify((blueprintDetails as any).status, null, 2)}</pre>
+								</div>
 							</div>
 						{/if}
+					{/if}
+
+					<!-- Full Specification (Raw JSON) - Collapsible -->
+					{#if blueprintDetails.spec && Object.keys(blueprintDetails.spec).length > 0}
+						<div>
+							<button
+								onclick={() => showFullSpec = !showFullSpec}
+								class="w-full flex items-center justify-between text-md font-medium text-gray-900 dark:text-white mb-3 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
+							>
+								<span>Full Specification (JSON)</span>
+								<svg
+									class="w-5 h-5 transition-transform {showFullSpec ? 'rotate-180' : ''}"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							</button>
+							{#if showFullSpec}
+								<div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+									<div class="bg-white dark:bg-slate-800 rounded border border-green-200 dark:border-green-800 p-4 text-xs">
+										<pre class="text-green-900 dark:text-green-100 font-mono whitespace-pre-wrap overflow-x-auto">{JSON.stringify(blueprintDetails.spec, null, 2)}</pre>
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
 					</div>
 				{:else}
 					<div class="text-center py-8 text-gray-500 dark:text-slate-400">
@@ -351,17 +457,21 @@
 
 			<!-- Footer -->
 			<div class="px-6 py-4 border-t border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 flex justify-between">
-				<button
-					onclick={openDeployModal}
-					disabled={loadingStatus !== 'success' || !blueprintDetails}
-					class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg transition-colors flex items-center gap-2"
-					title="Deploy a new blueprint instance"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-					</svg>
-					Deploy Blueprint
-				</button>
+				<div>
+					{#if isDefinition}
+						<button
+							onclick={openDeployModal}
+							disabled={loadingStatus !== 'success' || !blueprintDetails}
+							class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg transition-colors flex items-center gap-2"
+							title="Deploy a new blueprint instance"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+							</svg>
+							Deploy Blueprint
+						</button>
+					{/if}
+				</div>
 				<button
 					onclick={onClose}
 					class="px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-slate-500 dark:hover:bg-slate-400 text-white rounded-lg transition-colors"
