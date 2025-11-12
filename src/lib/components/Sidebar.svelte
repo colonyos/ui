@@ -10,6 +10,7 @@
         { name: "Workflows", path: "/workflows" },
         { name: "Cron", path: "/cron" },
         { name: "Generators", path: "/generators" },
+        { name: "Blueprints", path: "/blueprints" },
         { name: "Deployment", path: "/deployment" },
         { name: "Files", path: "/filesystem" },
         { name: "Server", path: "/server" },

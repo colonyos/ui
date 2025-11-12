@@ -16,6 +16,9 @@
 	let loadingDetails = $state(false);
 	let detailsError = $state('');
 	let processDetails: any = $state(null);
+	let loadingLogs = $state(false);
+	let logsError = $state('');
+	let processLogs: any[] = $state([]);
 	let deletingStatus: 'idle' | 'deleting' | 'success' | 'error' = $state('idle');
 	let deleteError = $state('');
 	let showDeleteConfirm = $state(false);
@@ -44,11 +47,62 @@
 			console.log('Response type:', typeof processDetails);
 			console.log('Response keys:', Object.keys(processDetails || {}));
 
+			// Load logs after getting process details
+			await loadProcessLogs();
+
 		} catch (error) {
 			console.error('Failed to load process details:', error);
 			detailsError = error instanceof Error ? error.message : String(error);
 		} finally {
 			loadingDetails = false;
+		}
+	}
+
+	async function loadProcessLogs() {
+		if (!process || !client || !processDetails) {
+			return;
+		}
+
+		loadingLogs = true;
+		logsError = '';
+		processLogs = [];
+
+		try {
+			const colonyName = process.colonyname || processDetails.spec?.conditions?.colonyname;
+			const executorName = '';
+
+			if (!colonyName) {
+				logsError = 'Colony name not available';
+				return;
+			}
+
+			console.log('=== Fetching process logs ===');
+			console.log('Colony:', colonyName);
+			console.log('Process ID:', process.processid);
+			console.log('Executor:', executorName);
+
+			const logs = await client.getProcessLogs(
+				colonyName,
+				process.processid,
+				executorName,
+				100,
+				0
+			);
+
+			if (Array.isArray(logs)) {
+				processLogs = logs;
+			} else {
+				processLogs = [];
+			}
+
+			console.log('=== Logs loaded ===');
+			console.log('Log count:', processLogs.length);
+
+		} catch (error) {
+			console.error('Failed to load process logs:', error);
+			logsError = error instanceof Error ? error.message : String(error);
+		} finally {
+			loadingLogs = false;
 		}
 	}
 
@@ -275,7 +329,7 @@
 								{#if process.spec?.args && process.spec.args.length > 0}
 									<div class="col-span-1 md:col-span-2">
 										<span class="text-sm text-gray-600 dark:text-slate-300">Arguments:</span>
-										<span class="ml-2 text-sm text-gray-900 dark:text-white font-mono">[{process.spec.args.join(', ')}]</span>
+										<div class="ml-2 text-sm text-gray-900 dark:text-white font-mono break-all">[{process.spec.args.join(', ')}]</div>
 									</div>
 								{/if}
 								{#if process.errors && process.errors.length > 0}
@@ -395,7 +449,7 @@
 										<div class="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
 											<span class="font-medium text-green-700 dark:text-green-300 text-sm">Arguments:</span>
 											<div class="mt-1 bg-green-100 dark:bg-green-900/30 rounded p-2">
-												<div class="text-green-900 dark:text-green-100 font-mono text-xs">
+												<div class="text-green-900 dark:text-green-100 font-mono text-xs break-all">
 													{JSON.stringify(processDetails.spec.args)}
 												</div>
 											</div>
@@ -593,6 +647,51 @@
 								</div>
 							</div>
 						{/if}
+
+						<!-- Process Logs -->
+						<div class="mb-6">
+							<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Process Logs</h4>
+							{#if loadingLogs}
+								<div class="flex items-center justify-center py-8 text-gray-500 dark:text-slate-400">
+									<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+									Loading logs...
+								</div>
+							{:else if logsError}
+								<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded">
+									<strong>Error:</strong> {logsError}
+								</div>
+							{:else if processLogs.length === 0}
+								<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 text-center text-gray-500 dark:text-slate-300">
+									No logs available for this process
+								</div>
+							{:else}
+								<div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-2 max-h-96 overflow-y-auto">
+									<div class="space-y-1 font-mono text-xs">
+										{#each processLogs as log}
+											<div class="border-b border-gray-200 dark:border-slate-600 pb-1 last:border-b-0">
+												<div class="flex justify-between items-center gap-2">
+													<span class="text-gray-500 dark:text-slate-400 text-[10px] whitespace-nowrap">
+														{new Date((log.timestamp || 0) / 1000000).toLocaleString()}
+													</span>
+													{#if log.messagetype}
+														<span class="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap {
+															log.messagetype === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+															log.messagetype === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
+															'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+														}">
+															{log.messagetype}
+														</span>
+													{/if}
+												</div>
+												<div class="text-gray-900 dark:text-slate-100 whitespace-pre-wrap break-words text-[11px] leading-tight">
+													{log.message || ''}
+												</div>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
 					{:else}
 						<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4 text-center text-gray-500 dark:text-slate-300 mb-6">
 							Click "Refresh Details" to load comprehensive process information

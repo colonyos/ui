@@ -139,11 +139,11 @@
 					</td>
 
 					<!-- Function -->
-					<td class="px-6 py-4 whitespace-nowrap">
+					<td class="px-6 py-4">
 						<div class="text-sm text-gray-900 dark:text-slate-100">
-							<div class="font-medium">{process.spec?.funcname || 'Unknown'}</div>
+							<div class="font-medium whitespace-nowrap">{process.spec?.funcname || 'Unknown'}</div>
 							{#if process.spec?.args && process.spec.args.length > 0}
-								<div class="text-xs text-gray-400">Args: {process.spec.args.join(', ')}</div>
+								<div class="text-xs text-gray-400 max-w-xs truncate">Args: {process.spec.args.join(', ')}</div>
 							{/if}
 						</div>
 					</td>

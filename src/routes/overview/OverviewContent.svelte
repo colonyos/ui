@@ -84,17 +84,40 @@
 			if (colonies.length > 0 && executors.length > 0) {
 				const colonyName = colonies[0]?.name || 'Unknown Colony';
 
+
 				// Transform processes
-				const processInfos: ProcessInfo[] = processes.map((proc: any) => ({
-					id: proc.processid || '',
-					functionName: proc.spec?.funcname || proc.spec?.functionname || 'Unknown',
-					state: proc.state ?? -1,
-					executorId: proc.assignedexecutorid || undefined,
-					executorName: proc.assignedexecutorname || undefined,
-					submissionTime: proc.submissiontime,
-					startTime: proc.starttime,
-					endTime: proc.endtime
-				}));
+				const processInfos: ProcessInfo[] = processes.map((proc: any) => {
+					// Look up executor name from executors list using assignedexecutorid
+					// Only if the process is actually assigned
+					let executorName = undefined;
+					if (proc.isassigned && proc.assignedexecutorid) {
+						// Try to find executor by ID - check both exact match and trimmed/normalized versions
+						const assignedId = proc.assignedexecutorid?.trim();
+						const executor = executors.find((e: any) => {
+							const execId = e.executorid?.trim();
+							return execId === assignedId;
+						});
+
+						if (executor) {
+							// Executor found - use its name
+							executorName = executor.executorname || executor.name || undefined;
+						} else {
+							// Executor not found (no longer active) - show truncated ID
+							executorName = `${assignedId.substring(0, 12)}...`;
+						}
+					}
+
+					return {
+						id: proc.processid || '',
+						functionName: proc.spec?.funcname || proc.spec?.functionname || 'Unknown',
+						state: proc.state ?? -1,
+						executorId: proc.assignedexecutorid || undefined,
+						executorName: executorName,
+						submissionTime: proc.submissiontime,
+						startTime: proc.starttime,
+						endTime: proc.endtime
+					};
+				});
 
 				// Calculate statistics
 				const statistics: ColonyStatistics = {
