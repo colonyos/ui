@@ -328,8 +328,14 @@
 								</div>
 								{#if process.spec?.args && process.spec.args.length > 0}
 									<div class="col-span-1 md:col-span-2">
-										<span class="text-sm text-gray-600 dark:text-slate-300">Arguments:</span>
-										<div class="ml-2 text-sm text-gray-900 dark:text-white font-mono break-all">[{process.spec.args.join(', ')}]</div>
+										<span class="text-sm text-gray-600 dark:text-slate-300">Input (Arguments):</span>
+										<div class="ml-2 text-sm text-gray-900 dark:text-white font-mono break-all">{process.spec.args.join(', ')}</div>
+									</div>
+								{/if}
+								{#if processDetails?.out && processDetails.out.length > 0}
+									<div class="col-span-1 md:col-span-2">
+										<span class="text-sm text-gray-600 dark:text-slate-300">Output:</span>
+										<div class="ml-2 text-sm text-gray-900 dark:text-white font-mono break-all">{processDetails.out.join(', ')}</div>
 									</div>
 								{/if}
 								{#if process.errors && process.errors.length > 0}
@@ -600,7 +606,7 @@
 						{/if}
 
 						<!-- File System & I/O -->
-						{#if (processDetails.spec?.fs && (processDetails.spec.fs.mount || processDetails.spec.fs.snapshots || processDetails.spec.fs.dirs)) || processDetails.in?.length > 0 || processDetails.out?.length > 0}
+						{#if (processDetails.spec?.fs && (processDetails.spec.fs.mount || processDetails.spec.fs.snapshots || processDetails.spec.fs.dirs)) || processDetails.in?.length > 0}
 							<div class="mb-6">
 								<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">File System & I/O</h4>
 								<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4">
@@ -621,15 +627,9 @@
 										</div>
 									{/if}
 									{#if processDetails.in?.length > 0}
-										<div class="mb-4">
-											<h5 class="font-medium text-gray-700 dark:text-slate-200 text-sm mb-2">Input:</h5>
-											<pre class="text-xs text-gray-700 dark:text-slate-100 whitespace-pre-wrap">{JSON.stringify(processDetails.in, null, 2)}</pre>
-										</div>
-									{/if}
-									{#if processDetails.out?.length > 0}
 										<div>
-											<h5 class="font-medium text-gray-700 dark:text-slate-200 text-sm mb-2">Output:</h5>
-											<pre class="text-xs text-gray-700 dark:text-slate-100 whitespace-pre-wrap">{JSON.stringify(processDetails.out, null, 2)}</pre>
+											<h5 class="font-medium text-gray-700 dark:text-slate-200 text-sm mb-2">Input Files:</h5>
+											<pre class="text-xs text-gray-700 dark:text-slate-100 whitespace-pre-wrap">{JSON.stringify(processDetails.in, null, 2)}</pre>
 										</div>
 									{/if}
 								</div>

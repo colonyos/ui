@@ -219,6 +219,30 @@
     return { all: filteredProcesses };
   });
 
+  // Calculate workflow status
+  function getWorkflowStatus(processes: Process[]) {
+    const hasRunning = processes.some(p => p.state === ProcessState.RUNNING);
+    const hasFailed = processes.some(p => p.state === ProcessState.FAILED);
+    const hasWaiting = processes.some(p => p.state === ProcessState.WAITING);
+    const allSuccess = processes.every(p => p.state === ProcessState.SUCCESS);
+
+    if (hasFailed) return { status: 'failed', label: 'Failed', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' };
+    if (hasRunning) return { status: 'running', label: 'Running', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' };
+    if (hasWaiting) return { status: 'waiting', label: 'Waiting', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' };
+    if (allSuccess) return { status: 'success', label: 'Success', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' };
+    return { status: 'mixed', label: 'Mixed', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' };
+  }
+
+  // Get state counts for a workflow
+  function getWorkflowStateCounts(processes: Process[]) {
+    return {
+      running: processes.filter(p => p.state === ProcessState.RUNNING).length,
+      waiting: processes.filter(p => p.state === ProcessState.WAITING).length,
+      success: processes.filter(p => p.state === ProcessState.SUCCESS).length,
+      failed: processes.filter(p => p.state === ProcessState.FAILED).length,
+    };
+  }
+
   function openRemoveDialog() {
     showRemoveDialog = true;
     removeState = selectedState;
@@ -459,48 +483,85 @@
           </div>
         {:else}
           {#each Object.entries(groupedProcesses) as [workflowId, processes]}
+            {@const workflowStatus = workflowId !== "no-workflow" ? getWorkflowStatus(processes) : null}
+            {@const stateCounts = workflowId !== "no-workflow" ? getWorkflowStateCounts(processes) : null}
             <div
               class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
             >
               <div
                 class="px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600"
               >
-                <div class="flex justify-between items-center">
-                  <div>
-                    <h3
-                      class="text-lg font-semibold text-gray-900 dark:text-white"
-                    >
-                      {#if workflowId === "no-workflow"}
-                        Individual Processes
-                      {:else}
-                        Workflow: {workflowId}
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <h3
+                        class="text-lg font-semibold text-gray-900 dark:text-white"
+                      >
+                        {#if workflowId === "no-workflow"}
+                          Individual Processes
+                        {:else}
+                          Workflow
+                        {/if}
+                      </h3>
+                      {#if workflowStatus}
+                        <span
+                          class="inline-flex px-3 py-1 rounded-full text-xs font-semibold {workflowStatus.color}"
+                        >
+                          {workflowStatus.label}
+                        </span>
                       {/if}
-                    </h3>
-                    <p class="text-sm text-gray-600 dark:text-slate-300">
-                      {processes.length} process{processes.length === 1
-                        ? ""
-                        : "es"}
-                    </p>
+                    </div>
+                    {#if workflowId !== "no-workflow"}
+                      <p class="text-xs text-gray-500 dark:text-slate-400 font-mono mb-2">
+                        {workflowId}
+                      </p>
+                    {/if}
+                    <div class="flex items-center gap-4 text-sm">
+                      <span class="text-gray-600 dark:text-slate-300">
+                        {processes.length} process{processes.length === 1 ? "" : "es"}
+                      </span>
+                      {#if stateCounts}
+                        <div class="flex items-center gap-3 text-xs">
+                          {#if stateCounts.running > 0}
+                            <span class="flex items-center text-blue-600 dark:text-blue-400">
+                              <div class="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                              {stateCounts.running} running
+                            </span>
+                          {/if}
+                          {#if stateCounts.waiting > 0}
+                            <span class="flex items-center text-yellow-600 dark:text-yellow-400">
+                              <div class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                              {stateCounts.waiting} waiting
+                            </span>
+                          {/if}
+                          {#if stateCounts.success > 0}
+                            <span class="flex items-center text-green-600 dark:text-green-400">
+                              <div class="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                              {stateCounts.success} success
+                            </span>
+                          {/if}
+                          {#if stateCounts.failed > 0}
+                            <span class="flex items-center text-red-600 dark:text-red-400 font-semibold">
+                              <div class="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                              {stateCounts.failed} failed
+                            </span>
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
                   </div>
                   {#if workflowId !== "no-workflow"}
-                    <div class="text-xs text-gray-500 dark:text-slate-300">
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="inline-flex px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-xs"
-                        >
-                          Workflow
-                        </span>
-                        <span
-                          >Dependencies: {processes.filter(
-                            (p) => p.parents.length > 0,
-                          ).length} processes</span
-                        >
-                      </div>
+                    <div class="text-xs text-gray-500 dark:text-slate-300 ml-4">
+                      <span
+                        >Dependencies: {processes.filter(
+                          (p) => p.parents.length > 0,
+                        ).length} processes</span
+                      >
                     </div>
                   {/if}
                 </div>
               </div>
-              <ProcessTable {processes} onProcessClick={handleProcessClick} />
+              <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} />
             </div>
           {/each}
         {/if}
