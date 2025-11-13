@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Process } from '$lib/types/process';
-	import { getProcessStateLabel, getProcessStateColor } from '$lib/types/process';
+	import { getProcessStateLabel, getProcessStateColor, ProcessState } from '$lib/types/process';
 	import { formatDate, formatDuration } from '$lib/utils/dateUtils';
 
 	interface Props {
@@ -10,6 +10,114 @@
 	}
 
 	let { processes, onProcessClick, hideWorkflowColumn = false }: Props = $props();
+
+	type SortField = 'status' | 'function' | 'executor' | 'initiator' | 'deadline' | 'duration' | 'workflow' | null;
+	type SortDirection = 'asc' | 'desc';
+
+	let sortField = $state<SortField>(null);
+	let sortDirection = $state<SortDirection>('asc');
+
+	function handleSort(field: SortField) {
+		if (sortField === field) {
+			// Toggle direction if clicking the same field
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			// New field, default to ascending
+			sortField = field;
+			sortDirection = 'asc';
+		}
+	}
+
+	// Calculate duration in milliseconds for sorting
+	function getDurationMs(startTime: string, endTime: string): number {
+		if (!startTime || startTime === '0001-01-01T00:00:00Z' || startTime === '0001-01-01T00:53:28+00:53') {
+			return 0;
+		}
+		const start = new Date(startTime).getTime();
+		let end: number;
+		if (!endTime || endTime === '0001-01-01T00:00:00Z' || endTime === '0001-01-01T00:53:28+00:53') {
+			end = Date.now();
+		} else {
+			end = new Date(endTime).getTime();
+		}
+		return end - start;
+	}
+
+	// Get deadline timestamp for sorting
+	function getDeadlineMs(deadline: string): number {
+		if (!deadline || deadline === '0001-01-01T00:00:00Z' || deadline === '0001-01-01T00:53:28+00:53') {
+			return Infinity; // No deadline goes to the end
+		}
+		return new Date(deadline).getTime();
+	}
+
+	// Status sort order: waiting > running > success > failed
+	function getStatusSortValue(state: number): number {
+		switch (state) {
+			case ProcessState.WAITING: return 0;
+			case ProcessState.RUNNING: return 1;
+			case ProcessState.SUCCESS: return 2;
+			case ProcessState.FAILED: return 3;
+			default: return 4;
+		}
+	}
+
+	let sortedProcesses = $derived.by(() => {
+		if (!sortField) return processes;
+
+		const sorted = [...processes].sort((a, b) => {
+			let comparison = 0;
+
+			switch (sortField) {
+				case 'status':
+					comparison = getStatusSortValue(a.state) - getStatusSortValue(b.state);
+					break;
+
+				case 'function':
+					const funcA = (a.spec?.funcname || '').toLowerCase();
+					const funcB = (b.spec?.funcname || '').toLowerCase();
+					comparison = funcA.localeCompare(funcB);
+					break;
+
+				case 'executor':
+					const execA = (a.assignedexecutorid || '').toLowerCase();
+					const execB = (b.assignedexecutorid || '').toLowerCase();
+					comparison = execA.localeCompare(execB);
+					break;
+
+				case 'initiator':
+					const initA = (a.initiatorname || '').toLowerCase();
+					const initB = (b.initiatorname || '').toLowerCase();
+					comparison = initA.localeCompare(initB);
+					break;
+
+				case 'deadline':
+					comparison = getDeadlineMs(a.execdeadline) - getDeadlineMs(b.execdeadline);
+					break;
+
+				case 'duration':
+					// Longest to shortest by default
+					comparison = getDurationMs(b.starttime, b.endtime) - getDurationMs(a.starttime, a.endtime);
+					break;
+
+				case 'workflow':
+					// Processes in workflow at the top
+					const hasWorkflowA = !!a.processgraphid;
+					const hasWorkflowB = !!b.processgraphid;
+					if (hasWorkflowA && !hasWorkflowB) return -1;
+					if (!hasWorkflowA && hasWorkflowB) return 1;
+					// Both have workflows or both don't
+					if (hasWorkflowA && hasWorkflowB) {
+						comparison = (a.processgraphid || '').localeCompare(b.processgraphid || '');
+					}
+					break;
+			}
+
+			return sortDirection === 'asc' ? comparison : -comparison;
+		});
+
+		return sorted;
+	});
 
 
 	function formatPriority(priorityTime: number): string {
@@ -84,6 +192,22 @@
 	</span>
 {/snippet}
 
+{#snippet sortIcon(field: SortField)}
+	{#if sortField === field}
+		<svg class="w-4 h-4 inline-block ml-1" fill="currentColor" viewBox="0 0 20 20">
+			{#if sortDirection === 'asc'}
+				<path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+			{:else}
+				<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+			{/if}
+		</svg>
+	{:else}
+		<svg class="w-4 h-4 inline-block ml-1 opacity-30" fill="currentColor" viewBox="0 0 20 20">
+			<path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+		</svg>
+	{/if}
+{/snippet}
+
 <div class="table-container">
 	<table class="table-base">
 		<thead class="table-header">
@@ -91,33 +215,54 @@
 				<th class="table-header-cell">
 					Process ID
 				</th>
-				<th class="table-header-cell">
-					Status
+				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('status')}>
+					<div class="flex items-center justify-between">
+						<span>Status</span>
+						{@render sortIcon('status')}
+					</div>
 				</th>
-				<th class="table-header-cell">
-					Function
+				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('function')}>
+					<div class="flex items-center justify-between">
+						<span>Function</span>
+						{@render sortIcon('function')}
+					</div>
 				</th>
-				<th class="table-header-cell">
-					Executor
+				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('executor')}>
+					<div class="flex items-center justify-between">
+						<span>Executor</span>
+						{@render sortIcon('executor')}
+					</div>
 				</th>
-				<th class="table-header-cell">
-					Initiator
+				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('initiator')}>
+					<div class="flex items-center justify-between">
+						<span>Initiator</span>
+						{@render sortIcon('initiator')}
+					</div>
 				</th>
-				<th class="table-header-cell">
-					Deadline
+				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('deadline')}>
+					<div class="flex items-center justify-between">
+						<span>Deadline</span>
+						{@render sortIcon('deadline')}
+					</div>
 				</th>
-				<th class="table-header-cell">
-					Duration
+				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('duration')}>
+					<div class="flex items-center justify-between">
+						<span>Duration</span>
+						{@render sortIcon('duration')}
+					</div>
 				</th>
 				{#if !hideWorkflowColumn}
-					<th class="table-header-cell">
-						Workflow
+					<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('workflow')}>
+						<div class="flex items-center justify-between">
+							<span>Workflow</span>
+							{@render sortIcon('workflow')}
+						</div>
 					</th>
 				{/if}
 			</tr>
 		</thead>
 		<tbody class="table-body">
-			{#each processes as process}
+			{#each sortedProcesses as process}
 				{@const deadlineStatus = getDeadlineStatus(process.execdeadline, process.state)}
 				<tr class="table-row" class:cursor-pointer={onProcessClick} onclick={() => onProcessClick?.(process)}>
 					<!-- Process ID -->
@@ -232,7 +377,7 @@
 		</tbody>
 	</table>
 
-	{#if processes.length === 0}
+	{#if sortedProcesses.length === 0}
 		<div class="table-empty">No processes found</div>
 	{/if}
 </div>
