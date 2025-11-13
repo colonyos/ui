@@ -7,9 +7,6 @@ This was made with Claude code and when ready is intended to be started from col
 ## TODOs
 
 - Colony visualization
-- Deployment of resources
-- Improve S3 integration
-- Submit and delete all types of resources
 - Follow process after submission (websocket)
 
 ## Running
