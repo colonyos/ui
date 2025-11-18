@@ -77,6 +77,7 @@ src/
 │   ├── +layout.svelte            # Root layout with sidebar and theme management
 │   ├── +page.svelte              # Home/landing page
 │   ├── overview/                 # Colony overview and visualization
+│   ├── blueprints/               # Blueprint definitions (CRDs) management page
 │   ├── processes/                # Process management page
 │   ├── executors/                # Executor management page
 │   ├── functions/                # Function listing page
@@ -94,12 +95,18 @@ static/
 
 ## Styling and Theming
 
-### Tailwind CSS v4 Configuration
-The application uses Tailwind CSS v4 with the Vite plugin. Key configuration:
-- **Dark Mode**: Uses class-based dark mode with `.dark` class on document root
-- **Dark Mode Variant**: Configured in `src/app.css` with `@variant dark (&:where(.dark, .dark *))`
+### Tailwind CSS v3 Configuration
+The application uses **Tailwind CSS v3** (not v4) for **RISC-V compatibility**. Tailwind v4's native dependencies are not compatible with RISC-V architecture.
+
+Key configuration:
+- **Version**: Tailwind CSS v3.4.x with PostCSS and Autoprefixer
+- **Dark Mode**: Uses class-based dark mode with `.dark` class on document root (`darkMode: 'class'` in `tailwind.config.js`)
+- **PostCSS**: Configured via `postcss.config.js` with `tailwindcss` and `autoprefixer` plugins
+- **CSS Directives**: Uses v3 syntax in `src/app.css`: `@tailwind base/components/utilities`
 - **Color Palette**: Consistent use of slate colors (slate-700, slate-800, slate-100, etc.) for dark mode
 - **Theme Toggle**: Located in bottom left of sidebar, persists preference to localStorage
+
+**Important**: Do NOT upgrade to Tailwind v4 - it breaks RISC-V compatibility
 
 ### Common CSS Classes
 Centralized styling system defined in `src/app.css` under `@layer components`:
@@ -156,6 +163,8 @@ The core architecture centers around the Colony API client (`src/lib/api/colony.
   - Crons: `getCrons()`, `getCron()`, `addCron()`, `runCron()`
   - Generators: `getGenerators()`, `getGenerator()`, `addGenerator()`
   - Functions: `getFunctions()`
+  - Blueprint Definitions (CRDs): `getBlueprintDefinitions()`, `getBlueprintDefinition()`, `addBlueprintDefinition()`, `removeBlueprintDefinition()`
+  - Blueprints (Instances): `getBlueprints()`, `getAllBlueprints()`, `getBlueprintsByNamespace()`, `getBlueprintsByKind()`, `getBlueprint()`, `getBlueprintByName()`, `addBlueprint()`, `removeBlueprint()`, `getBlueprintHistory()`
 
 ### Configuration and State Management
 - **Environment Config** (`src/lib/config/env.ts`): Build-time configuration using `VITE_COLONIES_*` prefixed environment variables from `.env` file (Vite automatically exposes these to the client)
@@ -174,10 +183,11 @@ Each page follows a consistent pattern:
 5. **User Actions**: Modal interactions trigger mutations, followed by data refresh
 
 ### Component Architecture
-- **Table Components**: Reusable tables (CronTable, ExecutorTable, FunctionTable, ProcessTable, WorkflowTable, GeneratorTable) with optional click handlers and action callbacks
+- **Table Components**: Reusable tables (BlueprintTable, CronTable, ExecutorTable, FunctionTable, ProcessTable, WorkflowTable, GeneratorTable) with optional click handlers and action callbacks
 - **Modal Components**:
-  - Detail views (CronDetailsModal, ExecutorDetailsModal, ProcessDetailsModal, GeneratorDetailsModal) triggered from table clicks
-  - Form modals (SubmitProcessModal, SubmitWorkflowModal, AddCronModal, AddGeneratorModal, SubmitWorkflowModal) for creating resources
+  - Detail views (BlueprintDetailsModal, CronDetailsModal, ExecutorDetailsModal, ProcessDetailsModal, GeneratorDetailsModal) triggered from table clicks
+  - Form modals (DeployBlueprintModal, SubmitProcessModal, SubmitWorkflowModal, AddBlueprintModal, AddCronModal, AddGeneratorModal) for creating resources
+  - DeployBlueprintModal: Dynamic form generation from CRD schemas for deploying blueprint instances
   - User management (AddUser modal on Server tab with key pair generation)
 - **DAG Visualization**: WorkflowDAG component using `@xyflow/svelte` for process graph rendering
 - **S3 Browser**: File/folder navigation with upload/download capabilities using AWS SDK v3
@@ -191,9 +201,10 @@ Each page follows a consistent pattern:
 ### Authentication Flow
 Different operations require different private keys (automatically assigned by ClientFactory):
 - **Server operations** (getColonies, getStatistics): server private key via `ServerClient`
-- **Colony operations** (getExecutors, getExecutor, getFunctionsForExecutor, getFunctions, getCrons, getCron, runCron, addCron, getGenerators, addGenerator, getProcessGraphs, getUsers, addUser, submitWorkflowSpec): colony private key via `ColonyClient`
+- **Colony operations** (getExecutors, getExecutor, getFunctionsForExecutor, getFunctions, getCrons, getCron, runCron, addCron, getGenerators, addGenerator, getProcessGraphs, getUsers, submitWorkflowSpec): colony private key via `ColonyClient`
 - **Process operations** (getProcesses, removeAllProcesses, removeProcess, submitProcess): colony private key via `ColonyClient`
-- **Individual process details** (getProcess): general private key (user key) via `GeneralClient`
+- **User operations** (addUser): user private key (VITE_COLONIES_PRVKEY) via `GeneralClient`
+- **Individual process details** (getProcess): user private key (VITE_COLONIES_PRVKEY) via `GeneralClient`
 - Key types are tracked in ColonyClient for debugging and proper authentication
 - Use appropriate client from ClientFactory - it handles key assignment automatically
 
@@ -205,9 +216,32 @@ Different operations require different private keys (automatically assigned by C
 - **Status Tracking**: 'idle' | 'connecting' | 'connected' | 'error' states
 - **Fallback Behavior**: Graceful degradation when API calls fail
 
+### Blueprint Definitions vs Blueprints
+The system distinguishes between two types of blueprint entities:
+
+**Blueprint Definitions (CRDs/Templates)**:
+- Define **what can be created** (like Kubernetes CustomResourceDefinitions)
+- Stored per colony with `namespace` field (not `colonyname`)
+- Have `blueprintdefinitionid` field (not `blueprintid`)
+- Contain `spec.schema` defining properties, `spec.handler` for reconciliation
+- Display in the Blueprints tab with columns: Name, Kind, Colony, Group, Version, Scope
+- Can be deployed via DeployBlueprintModal which generates dynamic forms from schema
+
+**Blueprint Instances**:
+- Actual deployed resources created from definitions
+- Have `blueprintid` field
+- Contain `spec` with values matching the definition's schema
+- Created via `addBlueprint()` RPC call
+
+**RPC Message Patterns**:
+- `getblueprintdefinitionsmsg`: Requires `colonyname` field, returns array of definitions
+- `getblueprintsmsg`: Requires `namespace` and optional `kind` fields, returns array of instances
+- Blueprint definition modal shows: CRD info, handler, schema properties (with types/descriptions/required badges), auto-generated example, collapsible full spec
+
 ### Data Transformation
 API responses often need conversion:
 - **Field Name Mapping**: API uses camelCase, UI may expect different formats
+- **Blueprint Definition Fields**: Use `blueprintdefinitionid` not `blueprintid`, `namespace` not `colonyname` in getBlueprints RPC
 - **Legacy Format Conversion**: Transform modern API responses to expected UI interfaces
 - **JSON Parsing**: Some fields (like workflowspec) contain JSON strings that need parsing
 - **Default Value Handling**: Provide sensible defaults for missing API fields
