@@ -1,8 +1,18 @@
 # Colonies Dashboard
 
-The goal is to provide a graphical interface for ColonyOS infrastructure. There is also limited control of resources.
+The goal is to provide a web interface for a colony with some control of resources.
 
-This was made with Claude code and when ready is intended to be started from colonies CLI.
+When ready it's intended to run as a container that is managed by the colonies CLI. If you want to run it now you have to start a dev server locally.
+
+This was created with Claude code
+
+## Images
+
+![Overview](docs/images/overview.png)
+
+![Processes](docs/images/processes.png)
+
+![Filesystem](docs/images/filesystem.png)
 
 ## TODOs
 
