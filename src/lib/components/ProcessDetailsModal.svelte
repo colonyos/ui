@@ -368,6 +368,179 @@
 						</div>
 					</div>
 
+					<!-- Process Timeline -->
+					<div class="mb-6">
+						<h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Process Timeline</h4>
+						<div class="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-lg p-4">
+							<div class="space-y-4">
+								<!-- Submitted -->
+								<div class="flex items-start">
+									<div class="flex-shrink-0">
+										<div class="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-600 dark:bg-cyan-500">
+											<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+											</svg>
+										</div>
+									</div>
+									<div class="ml-4 flex-1">
+										<div class="text-sm font-medium text-cyan-900 dark:text-cyan-100">Submitted</div>
+										<div class="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+											{formatDate(process.submissiontime)}
+										</div>
+										<div class="text-xs text-cyan-600 dark:text-cyan-400 mt-0.5">
+											by {process.initiatorname || 'Unknown'}
+										</div>
+									</div>
+								</div>
+
+								<!-- Assignment -->
+								{#if process.isassigned}
+									<div class="flex items-start">
+										<div class="flex-shrink-0">
+											<div class="relative">
+												<div class="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 -mt-4 bg-gradient-to-b from-cyan-300 to-blue-300 dark:from-cyan-700 dark:to-blue-700"></div>
+												<div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500">
+													<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+													</svg>
+												</div>
+											</div>
+										</div>
+										<div class="ml-4 flex-1">
+											<div class="text-sm font-medium text-blue-900 dark:text-blue-100">Assigned to Executor</div>
+											<div class="text-xs text-blue-700 dark:text-blue-300 mt-1 font-mono break-all">
+												{process.assignedexecutorid || (processDetails?.assignedexecutorid || 'Unknown')}
+											</div>
+										</div>
+									</div>
+								{/if}
+
+								<!-- Started -->
+								{#if process.starttime && process.starttime !== '0001-01-01T00:00:00Z' && process.starttime !== '0001-01-01T00:53:28+00:53'}
+									<div class="flex items-start">
+										<div class="flex-shrink-0">
+											<div class="relative">
+												<div class="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 -mt-4 bg-gradient-to-b from-blue-300 to-green-300 dark:from-blue-700 dark:to-green-700"></div>
+												<div class="flex items-center justify-center w-8 h-8 rounded-full bg-green-600 dark:bg-green-500">
+													<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+													</svg>
+												</div>
+											</div>
+										</div>
+										<div class="ml-4 flex-1">
+											<div class="text-sm font-medium text-green-900 dark:text-green-100">Started Execution</div>
+											<div class="text-xs text-green-700 dark:text-green-300 mt-1">
+												{formatDate(process.starttime)}
+											</div>
+										</div>
+									</div>
+								{/if}
+
+								<!-- Finished -->
+								{#if process.endtime && process.endtime !== '0001-01-01T00:00:00Z' && process.endtime !== '0001-01-01T00:53:28+00:53'}
+									<div class="flex items-start">
+										<div class="flex-shrink-0">
+											<div class="relative">
+												<div class="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 -mt-4 bg-gradient-to-b from-green-300 to-purple-300 dark:from-green-700 dark:to-purple-700"></div>
+												<div class="flex items-center justify-center w-8 h-8 rounded-full {
+													process.state === 2 ? 'bg-purple-600 dark:bg-purple-500' :
+													process.state === 3 ? 'bg-red-600 dark:bg-red-500' :
+													'bg-gray-600 dark:bg-gray-500'
+												}">
+													{#if process.state === 2}
+														<!-- Success icon -->
+														<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+														</svg>
+													{:else if process.state === 3}
+														<!-- Failed icon -->
+														<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+														</svg>
+													{:else}
+														<!-- Generic finish icon -->
+														<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+														</svg>
+													{/if}
+												</div>
+											</div>
+										</div>
+										<div class="ml-4 flex-1">
+											<div class="text-sm font-medium {
+												process.state === 2 ? 'text-purple-900 dark:text-purple-100' :
+												process.state === 3 ? 'text-red-900 dark:text-red-100' :
+												'text-gray-900 dark:text-gray-100'
+											}">
+												Finished - {getProcessStateLabel(process.state)}
+											</div>
+											<div class="text-xs {
+												process.state === 2 ? 'text-purple-700 dark:text-purple-300' :
+												process.state === 3 ? 'text-red-700 dark:text-red-300' :
+												'text-gray-700 dark:text-gray-300'
+											} mt-1">
+												{formatDate(process.endtime)}
+											</div>
+											<div class="text-xs {
+												process.state === 2 ? 'text-purple-600 dark:text-purple-400' :
+												process.state === 3 ? 'text-red-600 dark:text-red-400' :
+												'text-gray-600 dark:text-gray-400'
+											} mt-0.5">
+												Duration: {formatDuration(process.starttime, process.endtime)}
+											</div>
+										</div>
+									</div>
+								{/if}
+
+								<!-- Current State (if not finished) -->
+								{#if !process.endtime || process.endtime === '0001-01-01T00:00:00Z' || process.endtime === '0001-01-01T00:53:28+00:53'}
+									<div class="flex items-start">
+										<div class="flex-shrink-0">
+											<div class="relative">
+												<div class="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-4 -mt-4 bg-gradient-to-b from-green-300 to-yellow-300 dark:from-green-700 dark:to-yellow-700"></div>
+												<div class="flex items-center justify-center w-8 h-8 rounded-full {
+													process.state === 0 ? 'bg-yellow-600 dark:bg-yellow-500' :
+													process.state === 1 ? 'bg-blue-600 dark:bg-blue-500' :
+													'bg-gray-600 dark:bg-gray-500'
+												}">
+													{#if process.state === 1}
+														<!-- Running - spinner -->
+														<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+													{:else}
+														<!-- Waiting - clock -->
+														<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+														</svg>
+													{/if}
+												</div>
+											</div>
+										</div>
+										<div class="ml-4 flex-1">
+											<div class="text-sm font-medium {
+												process.state === 0 ? 'text-yellow-900 dark:text-yellow-100' :
+												process.state === 1 ? 'text-blue-900 dark:text-blue-100' :
+												'text-gray-900 dark:text-gray-100'
+											}">
+												{getProcessStateLabel(process.state)}
+											</div>
+											{#if process.state === 1 && process.starttime && process.starttime !== '0001-01-01T00:00:00Z'}
+												<div class="text-xs {
+													process.state === 0 ? 'text-yellow-700 dark:text-yellow-300' :
+													process.state === 1 ? 'text-blue-700 dark:text-blue-300' :
+													'text-gray-700 dark:text-gray-300'
+												} mt-1">
+													Running for {formatDuration(process.starttime, new Date().toISOString())}
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/if}
+							</div>
+						</div>
+					</div>
+
 					<!-- Detailed Information -->
 					{#if loadingDetails}
 						<div class="flex items-center justify-center py-8 text-gray-500 dark:text-slate-400">

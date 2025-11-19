@@ -24,9 +24,17 @@
 	let reconciliationProcess: any = $state(null);
 	let reconciliationProcessLoading = $state(false);
 
+	// Replicas update state
+	let replicasInputValue = $state<number | string>('');
+	let isUpdatingReplicas = $state(false);
+	let replicasUpdateError = $state('');
+	let replicasUpdateSuccess = $state(false);
+
 	$effect(() => {
 		if (show && blueprint && client) {
 			showFullSpec = false; // Reset collapse state when opening
+			replicasUpdateError = '';
+			replicasUpdateSuccess = false;
 			loadBlueprintDetails();
 		}
 	});
@@ -60,6 +68,11 @@
 				}
 				blueprintDetails = result;
 				loadingStatus = 'success';
+
+				// Initialize replicas input value if this is an instance
+				if (!isDefinition && (blueprintDetails.spec as any)?.replicas !== undefined) {
+					replicasInputValue = (blueprintDetails.spec as any).replicas;
+				}
 
 				// Load reconciliation process if this is an instance
 				if (!isDefinition && blueprintDetails.metadata?.lastReconciliationProcess) {
@@ -156,6 +169,55 @@
 	function handleBlueprintDeployed() {
 		showDeployModal = false;
 		// Optionally refresh or show success message
+	}
+
+	async function updateReplicas() {
+		if (!blueprintDetails || !client || isDefinition) return;
+
+		// Validate input
+		const newReplicas = Number(replicasInputValue);
+		if (isNaN(newReplicas) || newReplicas < 0 || !Number.isInteger(newReplicas)) {
+			replicasUpdateError = 'Replicas must be a non-negative integer';
+			return;
+		}
+
+		// Check if value has changed
+		if (newReplicas === (blueprintDetails.spec as any)?.replicas) {
+			replicasUpdateError = 'Replicas value has not changed';
+			return;
+		}
+
+		isUpdatingReplicas = true;
+		replicasUpdateError = '';
+		replicasUpdateSuccess = false;
+
+		try {
+			// Create updated blueprint object
+			const updatedBlueprint = {
+				...blueprintDetails,
+				spec: {
+					...(blueprintDetails.spec as any),
+					replicas: newReplicas
+				}
+			};
+
+			// Call the updateBlueprint RPC
+			await client.updateBlueprint(updatedBlueprint);
+
+			// Success - refresh the details
+			replicasUpdateSuccess = true;
+			await loadBlueprintDetails();
+
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				replicasUpdateSuccess = false;
+			}, 3000);
+		} catch (error) {
+			console.error('Failed to update replicas:', error);
+			replicasUpdateError = error instanceof Error ? error.message : String(error);
+		} finally {
+			isUpdatingReplicas = false;
+		}
 	}
 </script>
 
@@ -374,9 +436,46 @@
 								<div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 										{#if (blueprintDetails.spec as any).replicas !== undefined}
-											<div>
-												<span class="font-medium text-purple-700 dark:text-purple-300">Replicas:</span>
-												<span class="text-purple-900 dark:text-purple-100 ml-2">{(blueprintDetails.spec as any).replicas}</span>
+											<div class="md:col-span-2">
+												<div class="flex flex-col gap-2">
+													<div class="flex items-center gap-3">
+														<span class="font-medium text-purple-700 dark:text-purple-300">Replicas:</span>
+														<input
+															type="number"
+															bind:value={replicasInputValue}
+															disabled={isUpdatingReplicas}
+															min="0"
+															step="1"
+															class="px-3 py-1 border border-purple-300 dark:border-purple-700 rounded bg-white dark:bg-slate-800 text-purple-900 dark:text-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 w-24"
+														/>
+														<button
+															onclick={updateReplicas}
+															disabled={isUpdatingReplicas}
+															class="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded transition-colors flex items-center gap-2"
+															title="Update replicas"
+														>
+															{#if isUpdatingReplicas}
+																<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+																<span>Updating...</span>
+															{:else}
+																<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																	<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+																</svg>
+																<span>Update</span>
+															{/if}
+														</button>
+													</div>
+													{#if replicasUpdateError}
+														<div class="text-red-600 dark:text-red-400 text-xs">
+															{replicasUpdateError}
+														</div>
+													{/if}
+													{#if replicasUpdateSuccess}
+														<div class="text-green-600 dark:text-green-400 text-xs">
+															Replicas updated successfully!
+														</div>
+													{/if}
+												</div>
 											</div>
 										{/if}
 										{#if (blueprintDetails.spec as any).executorType}

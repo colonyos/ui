@@ -4,6 +4,7 @@
 	import ExecutorDetailsModal from '$lib/components/ExecutorDetailsModal.svelte';
 	import type { ColonyClient } from '$lib/api/colony';
 	import type { Executor } from '$lib/types/executor';
+	import { ExecutorState } from '$lib/types/executor';
 	import ClientFactory from '$lib/utils/clientFactory';
 
 	interface Colony {
@@ -16,7 +17,7 @@
 		executortype: string;
 		executorname: string;
 		colonyname: string;
-		state: number; // 0=PENDING, 1=APPROVED, 2=REJECTED
+		state: number; // 0=PENDING, 1=APPROVED, 2=REJECTED, 3=UNREGISTERED
 		requirefuncreg: boolean;
 		commissiontime: string;
 		lastheardfromtime: string;
@@ -60,6 +61,9 @@
 	// Modal state
 	let showExecutorDetails = $state(false);
 	let selectedExecutorForDetails = $state<Executor | null>(null);
+
+	// Filter state
+	let showUnregistered = $state(false);
 
 	onMount(async () => {
 		serverClient = await ClientFactory.getServerClient();
@@ -169,7 +173,11 @@
 	// Use only real data, show spinner when loading
 	let displayExecutors = $derived(convertToLegacyFormat(allExecutors));
 
-	let filteredExecutors = $derived(displayExecutors);
+	let filteredExecutors = $derived(
+		showUnregistered
+			? displayExecutors
+			: displayExecutors.filter(executor => executor.state !== ExecutorState.Unregistered)
+	);
 </script>
 
 <div class="space-y-6">
@@ -188,7 +196,19 @@
 			<strong>Error:</strong> {loadingError}
 		</div>
 	{:else}
-		<div class="flex justify-end mb-4">
+		<div class="flex justify-between items-center mb-4">
+			<!-- Filter Options -->
+			<div class="flex items-center gap-2">
+				<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+					<input
+						type="checkbox"
+						bind:checked={showUnregistered}
+						class="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-slate-700"
+					/>
+					<span>Show unregistered executors</span>
+				</label>
+			</div>
+
 			<!-- Refresh Button -->
 			<button
 				onclick={loadExecutorData}

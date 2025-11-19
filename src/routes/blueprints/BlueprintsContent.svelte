@@ -200,8 +200,8 @@
 			return;
 		}
 
-		if (!blueprint.metadata.name || !blueprint.metadata.namespace) {
-			alert('Cannot remove blueprint: missing name or namespace');
+		if (!blueprint.blueprintid || !blueprint.metadata.namespace) {
+			alert('Cannot remove blueprint: missing blueprint ID or namespace');
 			return;
 		}
 
@@ -209,8 +209,8 @@
 		if (!confirmed) return;
 
 		try {
-			console.log('Removing blueprint:', blueprint.metadata.namespace, blueprint.metadata.name);
-			await colonyClient.removeBlueprint(blueprint.metadata.namespace, blueprint.metadata.name);
+			console.log('Removing blueprint:', blueprint.metadata.namespace, blueprint.blueprintid);
+			await colonyClient.removeBlueprint(blueprint.metadata.namespace, blueprint.blueprintid);
 			console.log('Blueprint removed successfully');
 			// Refresh the data
 			await loadData();

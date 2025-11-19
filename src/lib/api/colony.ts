@@ -716,6 +716,22 @@ Body: [Could not decode payload]`);
   }
 
   /**
+   * Update an existing blueprint
+   * @param blueprint - Blueprint object with updated values
+   * @returns Promise resolving to the API response
+   * Note: This method requires colony private key for authentication
+   */
+  async updateBlueprint(blueprint: any): Promise<any> {
+    const msg = {
+      msgtype: "updateblueprintmsg",
+      blueprint: blueprint
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  /**
    * Get blueprints filtered by namespace and/or kind
    * @param namespace - Namespace (colony name) to filter by
    * @param kind - Optional kind to filter by (e.g., "DockerDeployment")
@@ -801,13 +817,15 @@ Body: [Could not decode payload]`);
 
   /**
    * Remove a specific blueprint
+   * @param colonyName - Name of the colony
    * @param blueprintId - ID of the blueprint to remove
    * @returns Promise resolving to the API response
    * Note: This method requires colony private key for authentication
    */
-  async removeBlueprint(blueprintId: string): Promise<any> {
+  async removeBlueprint(colonyName: string, blueprintId: string): Promise<any> {
     const msg = {
       msgtype: "removeblueprintmsg",
+      colonyname: colonyName,
       blueprintid: blueprintId
     };
 

@@ -61,7 +61,8 @@ export interface Executor {
 export enum ExecutorState {
 	Pending = 0,
 	Approved = 1,
-	Rejected = 2
+	Rejected = 2,
+	Unregistered = 3
 }
 
 export function getExecutorStateLabel(state: number): string {
@@ -72,6 +73,8 @@ export function getExecutorStateLabel(state: number): string {
 			return 'Approved';
 		case ExecutorState.Rejected:
 			return 'Rejected';
+		case ExecutorState.Unregistered:
+			return 'Unregistered';
 		default:
 			return 'Unknown';
 	}
@@ -80,12 +83,14 @@ export function getExecutorStateLabel(state: number): string {
 export function getExecutorStateColor(state: number): string {
 	switch (state) {
 		case ExecutorState.Pending:
-			return 'text-yellow-600 bg-yellow-100';
+			return 'text-yellow-600 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30';
 		case ExecutorState.Approved:
-			return 'text-green-600 bg-green-100';
+			return 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/30';
 		case ExecutorState.Rejected:
-			return 'text-red-600 bg-red-100';
+			return 'text-red-600 bg-red-100 dark:text-red-300 dark:bg-red-900/30';
+		case ExecutorState.Unregistered:
+			return 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30';
 		default:
-			return 'text-gray-600 bg-gray-100';
+			return 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30';
 	}
 }
