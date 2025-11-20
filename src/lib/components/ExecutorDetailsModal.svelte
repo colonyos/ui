@@ -178,6 +178,17 @@
 
     return hasName || hasType || hasVersion;
   }
+
+  function hasLocationData(location: any): boolean {
+    if (!location) return false;
+
+    // Check if any meaningful location data exists
+    const hasDesc = location.desc && location.desc !== "";
+    const hasLat = location.lat && location.lat !== 0;
+    const hasLong = location.long && location.long !== 0;
+
+    return hasDesc || hasLat || hasLong;
+  }
 </script>
 
 {#if show}
@@ -318,7 +329,7 @@
             </div>
 
             <!-- Location -->
-            {#if executorDetails.location}
+            {#if executorDetails.location && hasLocationData(executorDetails.location)}
               <div>
                 <h4
                   class="text-md font-medium text-gray-900 dark:text-white mb-3"

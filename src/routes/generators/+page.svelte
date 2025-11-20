@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import GeneratorTable from '$lib/components/GeneratorTable.svelte';
 	import GeneratorDetailsModal from '$lib/components/GeneratorDetailsModal.svelte';
 	import AddGeneratorModal from '$lib/components/AddGeneratorModal.svelte';
@@ -43,6 +45,21 @@
 		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadGeneratorData();
+
+		// Check if there's a generator ID in the URL
+		const urlGeneratorId = $page.url.searchParams.get('id');
+		if (urlGeneratorId) {
+			// Try to find the generator in the loaded list
+			const generator = displayGenerators.find(g => g.generatorid === urlGeneratorId);
+			if (generator) {
+				selectedGeneratorForDetails = generator;
+				showGeneratorDetails = true;
+			} else {
+				// Generator not in list, create a minimal object
+				selectedGeneratorForDetails = { generatorid: urlGeneratorId } as Generator;
+				showGeneratorDetails = true;
+			}
+		}
 	});
 
 	async function loadGeneratorData() {
@@ -107,11 +124,15 @@
 	function handleGeneratorClick(generator: Generator) {
 		selectedGeneratorForDetails = generator;
 		showGeneratorDetails = true;
+		// Update URL with generator ID
+		goto(`/generators?id=${generator.generatorid}`, { replaceState: true });
 	}
 
 	function closeGeneratorDetails() {
 		showGeneratorDetails = false;
 		selectedGeneratorForDetails = null;
+		// Clear URL parameter
+		goto('/generators', { replaceState: true });
 	}
 
 	function openAddGeneratorModal() {

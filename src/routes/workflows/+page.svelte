@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import WorkflowDAG from '$lib/components/WorkflowDAG.svelte';
 	import SubmitWorkflowModal from '$lib/components/SubmitWorkflowModal.svelte';
 	import { appState } from '$lib/stores/appState';
@@ -33,7 +35,58 @@
 		colonyClient = await ClientFactory.getColonyClient();
 		colonyName = $appState.colonyName || envConfig.colonyName || '';
 		await loadWorkflows();
+
+		// Check if there's a workflow ID in the URL
+		const urlWorkflowId = $page.url.searchParams.get('id');
+		if (urlWorkflowId && colonyClient) {
+			// Try to find the workflow in the loaded list
+			const workflow = workflows.find(w => w.processgraphid === urlWorkflowId);
+			if (workflow) {
+				selectWorkflow(workflow);
+			} else {
+				// Workflow not in list, try to load it directly
+				await loadWorkflowById(urlWorkflowId);
+			}
+		}
 	});
+
+	async function loadWorkflowById(workflowId: string) {
+		if (!colonyClient) return;
+
+		graphLoadingStatus = 'loading';
+		graphLoadingError = '';
+		graphData = null;
+
+		try {
+			graphData = await colonyClient.getProcessGraph(workflowId);
+
+			if (graphData && graphData.nodes && graphData.edges) {
+				// Create a minimal workflow object for display
+				selectedWorkflow = {
+					processgraphid: workflowId,
+					initiatorname: graphData.initiatorname || '',
+					colonyname: graphData.colonyname || colonyName,
+					state: graphData.state ?? 0,
+					submissiontime: graphData.submissiontime || '',
+					starttime: graphData.starttime || '',
+					endtime: graphData.endtime || '',
+					processids: graphData.processids || []
+				};
+				graphLoadingStatus = 'success';
+			} else {
+				graphLoadingError = 'Invalid workflow graph data received from server';
+				graphLoadingStatus = 'error';
+				// Clear invalid URL
+				goto('/workflows', { replaceState: true });
+			}
+		} catch (error) {
+			console.error('Failed to load workflow from URL:', error);
+			graphLoadingError = error instanceof Error ? error.message : String(error);
+			graphLoadingStatus = 'error';
+			// Clear invalid URL
+			goto('/workflows', { replaceState: true });
+		}
+	}
 
 	async function loadWorkflows() {
 		if (!colonyClient) {
@@ -100,6 +153,9 @@
 		graphLoadingError = '';
 		graphData = null;
 
+		// Update URL with workflow ID
+		goto(`/workflows?id=${workflow.processgraphid}`, { replaceState: true });
+
 		try {
 			console.log('=== Fetching workflow graph data ===');
 			console.log('Workflow ID:', workflow.processgraphid);
@@ -129,6 +185,8 @@
 		selectedWorkflow = null;
 		graphData = null;
 		graphLoadingStatus = 'idle';
+		// Clear URL parameter
+		goto('/workflows', { replaceState: true });
 	}
 
 	let isRemoving = $state(false);

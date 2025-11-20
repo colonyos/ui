@@ -1,20 +1,12 @@
 <script lang="ts">
   import type { Function } from "$lib/types/function";
-  import { formatDuration, getPerformanceColor } from "$lib/types/function";
+  import { formatDuration } from "$lib/types/function";
 
   interface Props {
     functions: Function[];
   }
 
   let { functions }: Props = $props();
-
-  function getThroughputColor(counter: number): string {
-    if (counter >= 1000)
-      return "text-green-600 dark:text-green-400 font-semibold";
-    if (counter >= 100) return "text-blue-600 dark:text-blue-400 font-medium";
-    if (counter >= 10) return "text-yellow-600 dark:text-yellow-400";
-    return "text-gray-600 dark:text-slate-300";
-  }
 </script>
 
 <div class="table-container">
@@ -46,7 +38,7 @@
             </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-center">
-            <span class="text-2xl font-bold {getThroughputColor(func.counter)}">
+            <span class="text-2xl font-bold text-gray-900 dark:text-slate-100">
               {func.counter.toLocaleString()}
             </span>
           </td>
@@ -54,13 +46,7 @@
             <div class="text-sm space-y-1">
               <div class="flex justify-between">
                 <span class="text-gray-500 dark:text-slate-300">Avg:</span>
-                <span
-                  class="font-medium {getPerformanceColor(
-                    func.avgwaittime,
-                    func.minwaittime,
-                    func.maxwaittime,
-                  )}"
-                >
+                <span class="font-medium text-gray-900 dark:text-slate-100">
                   {formatDuration(func.avgwaittime)}
                 </span>
               </div>
@@ -76,13 +62,7 @@
             <div class="text-sm space-y-1">
               <div class="flex justify-between">
                 <span class="text-gray-500 dark:text-slate-300">Avg:</span>
-                <span
-                  class="font-medium {getPerformanceColor(
-                    func.avgexectime,
-                    func.minexectime,
-                    func.maxexectime,
-                  )}"
-                >
+                <span class="font-medium text-gray-900 dark:text-slate-100">
                   {formatDuration(func.avgexectime)}
                 </span>
               </div>

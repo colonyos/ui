@@ -335,7 +335,7 @@
 								{#if processDetails?.out && processDetails.out.length > 0}
 									<div class="col-span-1 md:col-span-2">
 										<span class="text-sm text-gray-600 dark:text-slate-300">Output:</span>
-										<div class="ml-2 text-sm text-gray-900 dark:text-white font-mono break-all">{processDetails.out.join(', ')}</div>
+										<div class="ml-2 text-sm text-gray-900 dark:text-white font-mono break-all">{processDetails.out.map(item => typeof item === 'object' ? JSON.stringify(item) : item).join(', ')}</div>
 									</div>
 								{/if}
 								{#if process.errors && process.errors.length > 0}

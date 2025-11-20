@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
   import ProcessTable from "$lib/components/ProcessTable.svelte";
   import ProcessDetailsModal from "$lib/components/ProcessDetailsModal.svelte";
   import SubmitProcessModal from "$lib/components/SubmitProcessModal.svelte";
@@ -30,6 +32,7 @@
     return {
       selectedState: "",
       groupByWorkflow: false,
+      hideReconcile: false,
     };
   }
 
@@ -41,6 +44,7 @@
   let allProcesses = $state<Process[]>([]);
   let selectedState = $state<number | "">(initialState.selectedState);
   let groupByWorkflow = $state(initialState.groupByWorkflow);
+  let hideReconcile = $state(initialState.hideReconcile);
   let serverClient = $state<ColonyClient | null>(null);
   let colonyClient = $state<ColonyClient | null>(null);
   let processClient = $state<ColonyClient | null>(null); // For getProcess calls
@@ -66,11 +70,15 @@
   function handleProcessClick(process: Process) {
     selectedProcess = process;
     showProcessModal = true;
+    // Update URL with process ID
+    goto(`/processes?id=${process.processid}`, { replaceState: true });
   }
 
   function closeProcessModal() {
     showProcessModal = false;
     selectedProcess = null;
+    // Clear URL parameter
+    goto('/processes', { replaceState: true });
   }
 
   function openSubmitModal() {
@@ -108,6 +116,7 @@
       const filterState = {
         selectedState,
         groupByWorkflow,
+        hideReconcile,
       };
       localStorage.setItem("processFilterState", JSON.stringify(filterState));
     }
@@ -136,6 +145,21 @@
     }
 
     await loadProcessData();
+
+    // Check if there's a process ID in the URL
+    const urlProcessId = $page.url.searchParams.get('id');
+    if (urlProcessId) {
+      // Try to find the process in the loaded list
+      const process = allProcesses.find(p => p.processid === urlProcessId);
+      if (process) {
+        selectedProcess = process;
+        showProcessModal = true;
+      } else {
+        // Process not in list, create a minimal process object to trigger modal load
+        selectedProcess = { processid: urlProcessId } as Process;
+        showProcessModal = true;
+      }
+    }
   });
 
   async function loadProcessData() {
@@ -197,7 +221,10 @@
     return allProcesses.filter((p) => {
       const stateMatch =
         selectedState !== "" ? p.state === selectedState : true;
-      return stateMatch;
+      const reconcileMatch = hideReconcile
+        ? (p.spec?.funcname || '').toLowerCase() !== 'reconcile'
+        : true;
+      return stateMatch && reconcileMatch;
     });
   });
 
@@ -317,6 +344,12 @@
       </h2>
 
       <div class="flex items-center gap-4">
+        <!-- Hide Reconcile Toggle -->
+        <label class="flex items-center text-sm text-gray-700 dark:text-slate-300">
+          <input type="checkbox" bind:checked={hideReconcile} class="mr-2" />
+          Hide reconcile
+        </label>
+
         <!-- Group by Workflow Toggle -->
         <label class="flex items-center text-sm text-gray-700 dark:text-slate-300">
           <input type="checkbox" bind:checked={groupByWorkflow} class="mr-2" />

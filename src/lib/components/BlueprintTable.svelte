@@ -18,14 +18,27 @@
 	}
 
 	function getKindColor(kind: string): string {
-		const colors: Record<string, string> = {
-			'dockerdeployment': 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900',
-			'deployment': 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900',
-			'service': 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900',
-			'job': 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900',
-			'cronjob': 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900'
-		};
-		return colors[kind.toLowerCase()] || 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+		const colorPalette = [
+			'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900',
+			'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900',
+			'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900',
+			'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900',
+			'text-pink-600 bg-pink-100 dark:text-pink-400 dark:bg-pink-900',
+			'text-teal-600 bg-teal-100 dark:text-teal-400 dark:bg-teal-900',
+			'text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900',
+			'text-cyan-600 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900'
+		];
+
+		// Simple hash function
+		let hash = 0;
+		const str = kind.toLowerCase();
+		for (let i = 0; i < str.length; i++) {
+			hash = ((hash << 5) - hash) + str.charCodeAt(i);
+			hash = hash & hash;
+		}
+
+		const index = Math.abs(hash) % colorPalette.length;
+		return colorPalette[index];
 	}
 </script>
 

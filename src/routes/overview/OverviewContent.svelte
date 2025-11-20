@@ -141,8 +141,9 @@
 					}
 				});
 
-				// Transform executors
-				const executorNodes: ExecutorNode[] = executors.map((exec: any) => {
+				// Transform executors - filter out unregistered executors (state=3)
+				const registeredExecutors = executors.filter((exec: any) => exec.state !== 3);
+				const executorNodes: ExecutorNode[] = registeredExecutors.map((exec: any) => {
 					const execId = exec.executorid || exec.id || '';
 					const processCounts = executorProcessCounts.get(execId) || { running: 0, assigned: 0 };
 

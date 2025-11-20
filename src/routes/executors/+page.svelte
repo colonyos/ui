@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import ExecutorTable from '$lib/components/ExecutorTable.svelte';
 	import ExecutorDetailsModal from '$lib/components/ExecutorDetailsModal.svelte';
 	import type { ColonyClient } from '$lib/api/colony';
@@ -69,6 +71,26 @@
 		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadExecutorData();
+
+		// Check if there's an executor ID in the URL
+		const urlExecutorId = $page.url.searchParams.get('id');
+		if (urlExecutorId) {
+			// Try to find the executor in the loaded list
+			const executor = displayExecutors.find(e => e.executorid === urlExecutorId);
+			if (executor) {
+				// Store colony name
+				const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
+				if (apiExecutor) {
+					(executor as any).colonyname = apiExecutor.colonyname;
+				}
+				selectedExecutorForDetails = executor;
+				showExecutorDetails = true;
+			} else {
+				// Executor not in list, create a minimal object
+				selectedExecutorForDetails = { executorid: urlExecutorId } as Executor;
+				showExecutorDetails = true;
+			}
+		}
 	});
 
 	async function loadExecutorData() {
@@ -163,11 +185,15 @@
 		}
 		selectedExecutorForDetails = executor;
 		showExecutorDetails = true;
+		// Update URL with executor ID
+		goto(`/executors?id=${executor.executorid}`, { replaceState: true });
 	}
 
 	function closeExecutorDetails() {
 		showExecutorDetails = false;
 		selectedExecutorForDetails = null;
+		// Clear URL parameter
+		goto('/executors', { replaceState: true });
 	}
 
 	// Use only real data, show spinner when loading

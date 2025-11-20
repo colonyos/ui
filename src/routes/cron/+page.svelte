@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import CronTable from '$lib/components/CronTable.svelte';
 	import CronDetailsModal from '$lib/components/CronDetailsModal.svelte';
 	import AddCronModal from '$lib/components/AddCronModal.svelte';
@@ -57,6 +59,21 @@
 		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadCronData();
+
+		// Check if there's a cron ID in the URL
+		const urlCronId = $page.url.searchParams.get('id');
+		if (urlCronId) {
+			// Try to find the cron in the loaded list
+			const cron = allCrons.find(c => c.cronid === urlCronId);
+			if (cron) {
+				selectedCronForDetails = cron as Cron;
+				showCronDetails = true;
+			} else {
+				// Cron not in list, create a minimal cron object to trigger modal load
+				selectedCronForDetails = { cronid: urlCronId } as Cron;
+				showCronDetails = true;
+			}
+		}
 	});
 
 	async function loadCronData() {
@@ -107,11 +124,15 @@
 	function handleCronClick(cron: Cron) {
 		selectedCronForDetails = cron;
 		showCronDetails = true;
+		// Update URL with cron ID
+		goto(`/cron?id=${cron.cronid}`, { replaceState: true });
 	}
 
 	function closeCronDetails() {
 		showCronDetails = false;
 		selectedCronForDetails = null;
+		// Clear URL parameter
+		goto('/cron', { replaceState: true });
 	}
 
 	function openAddCronModal() {

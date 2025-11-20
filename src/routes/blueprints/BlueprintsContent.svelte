@@ -34,6 +34,34 @@
 		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadData();
+
+		// Check if there's a blueprint ID in the URL
+		const urlId = $page.url.searchParams.get('id');
+		if (urlId) {
+			if (activeTab === 'definitions') {
+				// Find in definitions
+				const def = allBlueprintDefinitions.find(d => d.blueprintdefinitionid === urlId);
+				if (def) {
+					selectedBlueprintForDetails = def;
+					showBlueprintDetails = true;
+				} else {
+					// Create minimal object to trigger modal
+					selectedBlueprintForDetails = { blueprintdefinitionid: urlId } as BlueprintDefinition;
+					showBlueprintDetails = true;
+				}
+			} else {
+				// Find in blueprints
+				const bp = allBlueprints.find(b => b.blueprintid === urlId);
+				if (bp) {
+					selectedBlueprintForDetails = bp;
+					showBlueprintDetails = true;
+				} else {
+					// Create minimal object to trigger modal
+					selectedBlueprintForDetails = { blueprintid: urlId } as Blueprint;
+					showBlueprintDetails = true;
+				}
+			}
+		}
 	});
 
 	// Reload data when tab changes via URL
@@ -148,11 +176,18 @@
 	function handleBlueprintClick(blueprint: BlueprintDefinition | Blueprint) {
 		selectedBlueprintForDetails = blueprint;
 		showBlueprintDetails = true;
+		// Update URL with blueprint ID
+		const id = 'blueprintdefinitionid' in blueprint ? blueprint.blueprintdefinitionid : blueprint.blueprintid;
+		const basePath = activeTab === 'definitions' ? '/blueprint-definitions' : '/blueprints';
+		goto(`${basePath}?id=${id}`, { replaceState: true });
 	}
 
 	function closeBlueprintDetails() {
 		showBlueprintDetails = false;
 		selectedBlueprintForDetails = null;
+		// Clear URL parameter
+		const basePath = activeTab === 'definitions' ? '/blueprint-definitions' : '/blueprints';
+		goto(basePath, { replaceState: true });
 	}
 
 	function openAddBlueprintModal() {
