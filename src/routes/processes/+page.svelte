@@ -32,7 +32,6 @@
     return {
       selectedState: "",
       groupByWorkflow: false,
-      hideReconcile: false,
     };
   }
 
@@ -44,7 +43,6 @@
   let allProcesses = $state<Process[]>([]);
   let selectedState = $state<number | "">(initialState.selectedState);
   let groupByWorkflow = $state(initialState.groupByWorkflow);
-  let hideReconcile = $state(initialState.hideReconcile);
   let serverClient = $state<ColonyClient | null>(null);
   let colonyClient = $state<ColonyClient | null>(null);
   let processClient = $state<ColonyClient | null>(null); // For getProcess calls
@@ -117,7 +115,6 @@
       const filterState = {
         selectedState,
         groupByWorkflow,
-        hideReconcile,
       };
       localStorage.setItem("processFilterState", JSON.stringify(filterState));
     }
@@ -222,10 +219,7 @@
     return allProcesses.filter((p) => {
       const stateMatch =
         selectedState !== "" ? p.state === selectedState : true;
-      const reconcileMatch = hideReconcile
-        ? (p.spec?.funcname || '').toLowerCase() !== 'reconcile'
-        : true;
-      return stateMatch && reconcileMatch;
+      return stateMatch;
     });
   });
 
@@ -360,12 +354,6 @@
       </h2>
 
       <div class="flex items-center gap-4">
-        <!-- Hide Reconcile Toggle -->
-        <label class="flex items-center text-sm text-gray-700 dark:text-slate-300">
-          <input type="checkbox" bind:checked={hideReconcile} class="mr-2" />
-          Hide reconcile
-        </label>
-
         <!-- Group by Workflow Toggle -->
         <label class="flex items-center text-sm text-gray-700 dark:text-slate-300">
           <input type="checkbox" bind:checked={groupByWorkflow} class="mr-2" />

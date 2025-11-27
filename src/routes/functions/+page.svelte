@@ -23,6 +23,7 @@
   let allFunctions = $state<Function[]>([]);
   let userClient = $state<ColonyClient | null>(null); // Client with colony private key
   let expandedExecutors = $state<Record<string, boolean>>({}); // Track which executors are expanded
+  let searchTerm = $state("");
 
   onMount(async () => {
     userClient = await ClientFactory.getColonyClient();
@@ -94,9 +95,18 @@
     }
   }
 
-  // Group functions by executor
+  // Filter functions based on search term
+  let filteredFunctions = $derived(
+    allFunctions.filter(func =>
+      searchTerm === "" ||
+      func.funcname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      func.functionid.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  // Group filtered functions by executor
   let groupedFunctions = $derived.by(() => {
-    return allFunctions.reduce(
+    return filteredFunctions.reduce(
       (groups, func) => {
         const executorName = func.executorname || "unknown";
         if (!groups[executorName]) {
@@ -144,7 +154,51 @@
       {loadingError}
     </div>
   {:else}
-    <div class="flex justify-end mb-4">
+    <div class="flex justify-between items-center mb-4">
+      <!-- Search Filter -->
+      <div class="flex items-center gap-2">
+        <svg
+          class="w-5 h-5 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+        <input
+          type="text"
+          bind:value={searchTerm}
+          placeholder="Filter by function name or ID..."
+          class="w-80 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {#if searchTerm}
+          <button
+            onclick={() => (searchTerm = "")}
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
+            title="Clear filter"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        {/if}
+      </div>
+
       <!-- Refresh Button -->
       <button
         onclick={loadFunctionData}
@@ -172,7 +226,11 @@
     <!-- Function Tables Grouped by Executor -->
     {#if Object.entries(groupedFunctions).length === 0}
       <div class="text-center py-8 text-gray-500 dark:text-slate-300">
-        No functions found
+        {#if searchTerm}
+          No functions match the filter "{searchTerm}"
+        {:else}
+          No functions found
+        {/if}
       </div>
     {:else}
       {#each Object.entries(groupedFunctions) as [executorName, functions] (executorName)}

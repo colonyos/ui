@@ -418,25 +418,6 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
-  /**
-   * Get processes for a specific process graph (workflow)
-   * @param processGraphId - ID of the process graph
-   * @param colonyName - Name of the colony
-   * @param count - Number of processes to retrieve (default: 100)
-   * @returns Promise resolving to array of process objects for the workflow
-   * Note: This method requires colony private key for authentication
-   */
-  async getProcessesForWorkflow(processGraphId: string, colonyName: string, count: number = 100): Promise<any> {
-    const msg = {
-      msgtype: "getprocessesmsg",
-      colonyname: colonyName,
-      count: count,
-      processgraphid: processGraphId
-    };
-
-    const rpcMessage = this.createRPCMsg(msg);
-    return this.sendRPC(rpcMessage);
-  }
 
   /**
    * Remove all processes from a colony

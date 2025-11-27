@@ -1,4 +1,5 @@
 import { ProcessState, getProcessStateLabel, getProcessStateColor } from './process';
+import { formatDate } from '$lib/utils/dateUtils';
 
 export interface Workflow {
 	processgraphid: string;
@@ -15,6 +16,9 @@ export interface Workflow {
 
 // Re-export process state utilities since workflows use the same states
 export { ProcessState, getProcessStateLabel, getProcessStateColor };
+
+// Re-export date utilities for workflow-specific formatting
+export { formatDate as formatWorkflowTime };
 
 export function formatWorkflowDuration(startTime: string, endTime: string): string {
 	if (!startTime || startTime === '0001-01-01T00:00:00Z') {
@@ -57,14 +61,3 @@ function formatDuration(durationMs: number): string {
 	}
 }
 
-export function formatWorkflowTime(timeString: string): string {
-	if (!timeString || timeString === '0001-01-01T00:00:00Z') {
-		return 'Never';
-	}
-
-	try {
-		return new Date(timeString).toLocaleString();
-	} catch {
-		return timeString;
-	}
-}

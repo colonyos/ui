@@ -32,15 +32,7 @@ export interface AppState {
 	
 	// Colony endpoint
 	colonies: ColonyEndpoint | null;
-	
-	// Current selections/filters
-	selectedExecutor: string;
-	selectedProcess: string;
-	selectedFunction: string;
-	selectedCron: string;
-	selectedGenerator: string;
-	selectedWorkflow: string;
-	
+
 	// UI state
 	sidebarCollapsed: string; // 'true' or 'false' as string
 	currentTheme: string;
@@ -85,15 +77,7 @@ const defaultState: AppState = {
 	
 	// Colony endpoint
 	colonies: null,
-	
-	// Current selections/filters
-	selectedExecutor: '',
-	selectedProcess: '',
-	selectedFunction: '',
-	selectedCron: '',
-	selectedGenerator: '',
-	selectedWorkflow: '',
-	
+
 	// UI state
 	sidebarCollapsed: 'false',
 	currentTheme: 'light',
@@ -122,100 +106,6 @@ export const appStateActions = {
 			port,
 			tls,
 			colonies: new ColonyEndpoint(host, port)
-		}));
-	},
-
-	setExecutorCredentials: (executorId: string, executorPrvKey: string) => {
-		appState.update(state => ({
-			...state,
-			executorId,
-			executorPrvKey
-		}));
-	},
-
-	setServerCredentials: (serverId: string, serverPrvKey: string) => {
-		appState.update(state => ({
-			...state,
-			serverId,
-			serverPrvKey
-		}));
-	},
-
-	// User information management
-	setUserInfo: (username: string, firstname: string, lastname: string, email: string) => {
-		appState.update(state => ({
-			...state,
-			username,
-			firstname,
-			lastname,
-			email
-		}));
-	},
-
-	// AWS S3 configuration
-	setAwsS3Config: (endpoint: string, accesskey: string, secretkey: string, region: string, bucket: string, tls: string, skipVerify: string) => {
-		appState.update(state => ({
-			...state,
-			awsS3Endpoint: endpoint,
-			awsS3Accesskey: accesskey,
-			awsS3Secretkey: secretkey,
-			awsS3Region: region,
-			awsS3Bucket: bucket,
-			awsS3TLS: tls,
-			awsS3SkipVerify: skipVerify
-		}));
-	},
-
-	// Colony endpoint management
-	setColonies: (host: string, port: string) => {
-		appState.update(state => ({
-			...state,
-			host,
-			port,
-			colonies: new ColonyEndpoint(host, port)
-		}));
-	},
-
-	// Selection management
-	setSelectedExecutor: (executorId: string) => {
-		appState.update(state => ({
-			...state,
-			selectedExecutor: executorId
-		}));
-	},
-
-	setSelectedProcess: (processId: string) => {
-		appState.update(state => ({
-			...state,
-			selectedProcess: processId
-		}));
-	},
-
-	setSelectedFunction: (functionId: string) => {
-		appState.update(state => ({
-			...state,
-			selectedFunction: functionId
-		}));
-	},
-
-	setSelectedCron: (cronId: string) => {
-		appState.update(state => ({
-			...state,
-			selectedCron: cronId
-		}));
-	},
-
-	setSelectedGenerator: (generatorId: string) => {
-		appState.update(state => ({
-			...state,
-			selectedGenerator: generatorId
-		}));
-	},
-
-	setSelectedWorkflow: (workflowId: string) => {
-		appState.update(state => ({
-			...state,
-			selectedWorkflow: workflowId
 		}));
 	},
 

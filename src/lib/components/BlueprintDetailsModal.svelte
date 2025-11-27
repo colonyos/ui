@@ -3,6 +3,8 @@
 	import { ColonyClient } from '$lib/api/colony';
 	import DeployBlueprintModal from './DeployBlueprintModal.svelte';
 	import ClientFactory from '$lib/utils/clientFactory';
+	import { formatDate } from '$lib/utils/dateUtils';
+	import { getProcessStateColor, getProcessStateLabel } from '$lib/types/process';
 
 	interface Props {
 		show: boolean;
@@ -105,37 +107,7 @@
 		}
 	}
 
-	function formatDate(dateString?: string): string {
-		if (!dateString || dateString === '0001-01-01T00:00:00Z') {
-			return 'Never';
-		}
-		return new Date(dateString).toLocaleString();
-	}
 
-	function getProcessStateColor(state?: number): string {
-		switch (state) {
-			case 0: // Waiting
-				return 'text-yellow-700 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30';
-			case 1: // Running
-				return 'text-blue-700 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30';
-			case 2: // Successful
-				return 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30';
-			case 3: // Failed
-				return 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/30';
-			default:
-				return 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30';
-		}
-	}
-
-	function getProcessStateName(state?: number): string {
-		switch (state) {
-			case 0: return 'Waiting';
-			case 1: return 'Running';
-			case 2: return 'Successful';
-			case 3: return 'Failed';
-			default: return 'Unknown';
-		}
-	}
 
 	function getSortedSchemaProperties(properties: any, required: string[]): [string, any][] {
 		const entries = Object.entries(properties);
@@ -407,8 +379,8 @@
 											{#if reconciliationProcessLoading}
 												<span class="ml-2 text-gray-500 dark:text-slate-400 text-xs">Loading...</span>
 											{:else if reconciliationProcess}
-												<span class="ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full {getProcessStateColor(reconciliationProcess.state)}">
-													{getProcessStateName(reconciliationProcess.state)}
+												<span class="ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full {getProcessStateColor(reconciliationProcess.state ?? 0)}">
+													{getProcessStateLabel(reconciliationProcess.state ?? 0)}
 												</span>
 											{:else}
 												<span class="ml-2 text-gray-500 dark:text-slate-400 text-xs">Unknown</span>
