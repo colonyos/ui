@@ -4,6 +4,8 @@ The goal is to provide a web interface for a colony with some control of resourc
 
 When ready it's intended to run as a container that is managed by the colonies CLI. If you want to run it now you have to start a dev server locally.
 
+Every RPC call is logged in the browser console along with the time it took to get a response.
+
 This was created with Claude code
 
 ## Images
