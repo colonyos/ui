@@ -7,7 +7,6 @@ export interface ColonyOverviewData {
 	statistics: ColonyStatistics;
 	totalExecutors: number;
 	activeExecutors: number;
-	idleExecutors: number;
 }
 
 export interface ExecutorNode {

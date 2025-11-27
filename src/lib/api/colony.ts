@@ -270,11 +270,15 @@ Body: [Could not decode payload]`);
   }
 
   // Executor methods
-  async getExecutors(colonyName: string): Promise<any> {
-    const msg = {
+  async getExecutors(colonyName: string, count?: number): Promise<any> {
+    const msg: any = {
       msgtype: "getexecutorsmsg",
       colonyname: colonyName
     };
+
+    if (count !== undefined) {
+      msg.count = count;
+    }
 
     const rpcMessage = this.createRPCMsg(msg);
     return this.sendRPC(rpcMessage);

@@ -22,6 +22,11 @@
 			: []
 	);
 
+	// Limit displayed executors to 5
+	let displayedExecutors = $derived(
+		data?.executors ? data.executors.slice(0, 5) : []
+	);
+
 	function getExecutorStateColor(state: string): string {
 		switch (state) {
 			case 'idle':
@@ -73,12 +78,12 @@
 {:else}
 	<!-- Colony Summary -->
 	<div class="bg-white dark:bg-slate-700 rounded-lg shadow p-6 mb-6">
-		<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Colony: {data.colonyName}</h2>
+		<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{data.colonyName}</h2>
 
 		<!-- Executor Statistics -->
 		<div class="mb-6">
 			<h3 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-3">Executor Status</h3>
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4">
 					<div class="text-sm text-gray-600 dark:text-gray-400">Total Executors</div>
 					<div class="text-3xl font-bold text-gray-900 dark:text-white">{data.totalExecutors}</div>
@@ -87,11 +92,6 @@
 				<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
 					<div class="text-sm text-blue-600 dark:text-blue-400">Busy Executors</div>
 					<div class="text-3xl font-bold text-blue-900 dark:text-blue-100">{data.activeExecutors}</div>
-				</div>
-
-				<div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-					<div class="text-sm text-green-600 dark:text-green-400">Idle Executors</div>
-					<div class="text-3xl font-bold text-green-900 dark:text-green-100">{data.idleExecutors}</div>
 				</div>
 			</div>
 		</div>
@@ -131,11 +131,11 @@
 	<!-- Executors List -->
 	<div class="bg-white dark:bg-slate-700 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
-			<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Executors</h3>
+			<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Executors (showing {displayedExecutors.length} of {data.totalExecutors})</h3>
 		</div>
 
 		<div class="divide-y divide-gray-200 dark:divide-slate-600">
-			{#each data.executors as executor}
+			{#each displayedExecutors as executor}
 				<div class="p-4 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
 					<div class="flex items-start justify-between">
 						<div class="flex items-start gap-3 flex-1">
@@ -144,14 +144,11 @@
 							<div class="flex-1">
 								<div class="flex items-center gap-2">
 									<h4 class="font-semibold text-gray-900 dark:text-white">{executor.name}</h4>
-									<span class="px-2 py-1 text-xs font-medium rounded {getExecutorStateColor(executor.state)}">
-										{executor.state}
-									</span>
 								</div>
 
 								<div class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-									<div>Type: {executor.type}</div>
-									<div class="font-mono text-xs text-gray-500 dark:text-gray-500">ID: {executor.id}</div>
+									<div>{executor.type}</div>
+									<div class="font-mono text-xs text-gray-500 dark:text-gray-500">{executor.id}</div>
 									{#if executor.cpu}
 										<div>CPU: {executor.cpu}</div>
 									{/if}
@@ -194,7 +191,7 @@
 				</div>
 			{/each}
 
-			{#if data.executors.length === 0}
+			{#if displayedExecutors.length === 0}
 				<div class="p-8 text-center text-gray-500 dark:text-gray-400">
 					No executors found in this colony
 				</div>
@@ -206,7 +203,7 @@
 	{#if data.processes && data.processes.length > 0}
 		<div class="bg-white dark:bg-slate-700 rounded-lg shadow mt-6">
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Processes</h3>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Processes (showing {recentProcesses.length} of {data.statistics.totalProcesses})</h3>
 			</div>
 
 			<div class="overflow-x-auto">
