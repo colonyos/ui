@@ -97,6 +97,12 @@
 						const crons = await colonyClient!.getCrons(colony.name, 100);
 						return Array.isArray(crons) ? crons : [];
 					} catch (error) {
+						// Silently handle "crons is nil" error - this just means no crons exist
+						const errorMessage = error instanceof Error ? error.message : String(error);
+						if (errorMessage.includes('crons is nil')) {
+							return [];
+						}
+						// Log other errors as warnings
 						console.warn(`Failed to get crons for ${colony.name}:`, error);
 						return [];
 					}

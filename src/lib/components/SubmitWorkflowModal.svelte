@@ -10,33 +10,36 @@
 		onWorkflowSubmitted: () => void;
 	} = $props();
 
-	let workflowSpecJson = $state(`[
-  {
-    "nodename": "task_a",
-    "funcname": "echo",
-    "args": ["task1"],
-    "conditions": {
-      "executortype": "cli",
-      "dependencies": null
-    }
-  },
-  {
-    "nodename": "task_b",
-    "funcname": "echo",
-    "args": ["task2"],
-    "conditions": {
-      "executortype": "cli",
-      "dependencies": ["task_a"]
-    }
-  }
-]`);
-
+	let workflowSpecJson = $state('');
 	let isSubmitting = $state(false);
 	let errorMessage = $state('');
+	let fileInputElement = $state<HTMLInputElement | null>(null);
+
+	function handleFileUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				const content = e.target?.result as string;
+				workflowSpecJson = content;
+			};
+			reader.readAsText(file);
+		}
+	}
+
+	function resetForm() {
+		workflowSpecJson = '';
+		errorMessage = '';
+		if (fileInputElement) {
+			fileInputElement.value = '';
+		}
+	}
 
 	function closeModal() {
 		show = false;
-		errorMessage = '';
+		resetForm();
 	}
 
 	async function handleSubmit() {
@@ -74,6 +77,7 @@
 			});
 
 			// Success - close modal and notify parent
+			resetForm();
 			onWorkflowSubmitted();
 		} catch (err) {
 			console.error('Failed to submit workflow:', err);
@@ -102,6 +106,7 @@
 			{/if}
 
 			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+				<!-- JSON Text Input -->
 				<div class="mb-4">
 					<label for="workflowSpec" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
 						Workflow Specification (JSON)
@@ -112,12 +117,28 @@
 						disabled={isSubmitting}
 						rows="20"
 						class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-slate-700"
-						placeholder="Enter workflow specification as JSON array"
+						placeholder="Paste workflow specification (array of FunctionSpec) here"
 						required
 					></textarea>
 					<p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
 						Enter an array of function specifications. Each spec must have <code>nodename</code>, <code>funcname</code>, and <code>conditions</code>.
 					</p>
+				</div>
+
+				<!-- File Upload -->
+				<div class="mb-4">
+					<label for="workflow-file-upload" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+						Or Upload Workflow Spec JSON File
+					</label>
+					<input
+						id="workflow-file-upload"
+						type="file"
+						accept=".json"
+						onchange={handleFileUpload}
+						bind:this={fileInputElement}
+						disabled={isSubmitting}
+						class="block w-full text-sm text-gray-500 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50 disabled:opacity-50"
+					/>
 				</div>
 
 				<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-4 mb-4">
