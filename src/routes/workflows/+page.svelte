@@ -30,6 +30,7 @@
 	let graphLoadingError = $state('');
 	let colonyClient = $state<ColonyClient | null>(null);
 	let colonyName = $state('');
+	let searchTerm = $state('');
 
 	onMount(async () => {
 		colonyClient = await ClientFactory.getColonyClient();
@@ -226,6 +227,13 @@
 		showRemoveConfirm = false;
 	}
 
+	// Filter workflows based on search term
+	let filteredWorkflows = $derived(
+		workflows.filter(workflow =>
+			workflow.processgraphid.toLowerCase().includes(searchTerm.toLowerCase())
+		)
+	);
+
 	function getWorkflowStateLabel(state: number): string {
 		switch (state) {
 			case 0: return 'Waiting';
@@ -282,7 +290,7 @@
 		<!-- Workflows List View -->
 		<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
-				<div class="flex justify-between items-center">
+				<div class="flex justify-between items-center mb-4">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Process Graphs</h2>
 					<div class="flex gap-2">
 						<button
@@ -309,6 +317,29 @@
 						</button>
 					</div>
 				</div>
+				<!-- Search Filter -->
+				<div class="flex items-center gap-2 max-w-md">
+					<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+					</svg>
+					<input
+						type="text"
+						bind:value={searchTerm}
+						placeholder="Filter by workflow ID..."
+						class="w-80 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+					/>
+					{#if searchTerm}
+						<button
+							onclick={() => searchTerm = ''}
+							class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
+							title="Clear filter"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					{/if}
+				</div>
 			</div>
 
 			{#if loadingStatus === 'loading'}
@@ -322,9 +353,13 @@
 						<strong>Error:</strong> {loadingError}
 					</div>
 				</div>
-			{:else if workflows.length === 0}
+			{:else if filteredWorkflows.length === 0}
 				<div class="p-12 text-center text-gray-500 dark:text-slate-300">
-					No workflows found. Create a workflow to see it here.
+					{#if searchTerm}
+						No workflows match the filter "{searchTerm}"
+					{:else}
+						No workflows found. Create a workflow to see it here.
+					{/if}
 				</div>
 			{:else}
 				<div class="table-container">
@@ -352,7 +387,7 @@
 							</tr>
 						</thead>
 						<tbody class="table-body">
-							{#each workflows as workflow}
+							{#each filteredWorkflows as workflow}
 								<tr class="table-row">
 									<td class="px-6 py-4 whitespace-nowrap">
 										<span class="font-mono text-xs text-gray-600 dark:text-slate-300">

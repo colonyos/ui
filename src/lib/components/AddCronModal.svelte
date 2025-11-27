@@ -15,6 +15,14 @@
   let submitError = $state("");
   let fileInputElement = $state<HTMLInputElement | null>(null);
 
+  // Form fields
+  let cronName = $state("");
+  let cronExpression = $state("");
+  let interval = $state(0);
+  let useInterval = $state(false);
+  let random = $state(false);
+  let checkerPeriod = $state(60);
+
   function handleBackdropClick(event: MouseEvent) {
     if (event.target === event.currentTarget) {
       onClose();
@@ -37,6 +45,12 @@
 
   function resetForm() {
     jsonInput = "";
+    cronName = "";
+    cronExpression = "";
+    interval = 0;
+    useInterval = false;
+    random = false;
+    checkerPeriod = 60;
     submitStatus = "idle";
     submitError = "";
     if (fileInputElement) {
@@ -51,18 +65,44 @@
       return;
     }
 
-    if (!jsonInput.trim()) {
-      submitError = "Please provide a cron specification";
-      submitStatus = "error";
-      return;
-    }
-
     submitStatus = "submitting";
     submitError = "";
 
     try {
-      // Parse and validate JSON
-      const cronSpec = JSON.parse(jsonInput);
+      // Validate form fields
+      if (!cronName.trim()) {
+        submitError = "Please provide a cron name";
+        submitStatus = "error";
+        return;
+      }
+
+      if (!useInterval && !cronExpression.trim()) {
+        submitError = "Please provide a cron expression or use interval";
+        submitStatus = "error";
+        return;
+      }
+
+      if (useInterval && interval <= 0) {
+        submitError = "Interval must be greater than 0";
+        submitStatus = "error";
+        return;
+      }
+
+      if (!jsonInput.trim()) {
+        submitError = "Please provide a workflow specification in the JSON textarea";
+        submitStatus = "error";
+        return;
+      }
+
+      // Build cron spec from form fields
+      const cronSpec = {
+        name: cronName,
+        cronexpression: useInterval ? "" : cronExpression,
+        interval: useInterval ? interval : 0,
+        random: useInterval ? random : false,
+        workflowspec: jsonInput.trim(),
+        checkerperiod: checkerPeriod
+      };
 
       // Submit the cron
       await client.addCron(cronSpec);
@@ -77,7 +117,11 @@
       }, 1500);
     } catch (error) {
       console.error("Failed to add cron:", error);
-      submitError = error instanceof Error ? error.message : String(error);
+      if (error instanceof SyntaxError) {
+        submitError = "Invalid JSON format: " + error.message;
+      } else {
+        submitError = error instanceof Error ? error.message : String(error);
+      }
       submitStatus = "error";
     }
   }
@@ -138,13 +182,125 @@
 
       <!-- Body -->
       <div class="px-6 py-4 overflow-y-auto max-h-[calc(90vh-180px)]">
+        <!-- Form Fields -->
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-slate-600 rounded-lg border border-gray-200 dark:border-slate-500">
+          <!-- Cron Name -->
+          <div class="mb-3">
+            <label for="cron-name" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Cron Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="cron-name"
+              type="text"
+              bind:value={cronName}
+              placeholder="my-cron-job"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+            />
+          </div>
+
+          <!-- Schedule Type Toggle -->
+          <div class="mb-3">
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                bind:checked={useInterval}
+                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span class="ml-2 text-sm font-medium text-gray-700 dark:text-slate-300">
+                Use interval instead of cron expression
+              </span>
+            </label>
+          </div>
+
+          {#if useInterval}
+            <!-- Interval -->
+            <div class="mb-3">
+              <label for="interval" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Interval (seconds) <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="interval"
+                type="number"
+                bind:value={interval}
+                min="1"
+                placeholder="300"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+
+            <!-- Random (only for interval) -->
+            <div class="mb-3">
+              <label class="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  bind:checked={random}
+                  class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span class="ml-2 text-sm font-medium text-gray-700 dark:text-slate-300">
+                  Random execution timing
+                </span>
+              </label>
+            </div>
+          {:else}
+            <!-- Cron Expression -->
+            <div class="mb-3">
+              <label for="cron-expression" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Cron Expression <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="cron-expression"
+                type="text"
+                bind:value={cronExpression}
+                placeholder="*/5 * * * *"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-slate-500 rounded-lg font-mono bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Format: minute hour day month weekday</p>
+            </div>
+          {/if}
+
+          <!-- Checker Period -->
+          <div class="mb-3">
+            <label for="checker-period" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+              Checker Period (seconds)
+            </label>
+            <input
+              id="checker-period"
+              type="number"
+              bind:value={checkerPeriod}
+              min="1"
+              placeholder="60"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        <!-- JSON Text Input -->
+        <div class="mb-4">
+          <label
+            for="json-input"
+            class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
+          >
+            Workflow Specification (JSON) <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            id="json-input"
+            bind:value={jsonInput}
+            placeholder="Paste workflow specification (array of FunctionSpec) here"
+            rows="10"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+          ></textarea>
+          <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+            Paste the workflow specification JSON array here (will be stringified automatically)
+          </p>
+        </div>
+
         <!-- File Upload -->
         <div class="mb-4">
           <label
             for="file-upload"
             class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2"
           >
-            Upload JSON File
+            Or Upload Workflow Spec JSON File
           </label>
           <input
             id="file-upload"
@@ -156,48 +312,19 @@
           />
         </div>
 
-        <!-- JSON Text Input -->
-        <div class="mb-4">
-          <div class="flex justify-between items-center mb-2">
-            <label
-              for="json-input"
-              class="block text-sm font-medium text-gray-700 dark:text-slate-300"
-            >
-              Cron Specification (JSON)
-            </label>
-          </div>
-          <textarea
-            id="json-input"
-            bind:value={jsonInput}
-            placeholder="Paste your cron specification JSON here"
-            rows="10"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-          ></textarea>
-        </div>
-
-        <!-- Instructions -->
+        <!-- Workflow Spec Documentation -->
         <div
           class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
         >
           <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
-            Cron Fields
+            Workflow Specification Structure
           </h4>
-          <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">cronid</code> - Cron job ID</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">initiatorid</code> - Initiator ID</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">initiatorname</code> - Initiator name</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">colonyname</code> - Colony name</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">name</code> - Cron job name</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">cronexpression</code> - Cron expression (e.g., "0 * * * *")</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">interval</code> - Interval in seconds (alternative to cronexpression)</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">random</code> - Random execution (boolean)</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">nextrun</code> - Next run time (timestamp)</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">lastrun</code> - Last run time (timestamp)</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">workflowspec</code> - Workflow specification (JSON string)</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">prevprocessgraphid</code> - Previous process graph ID</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">waitforprevprocessgraph</code> - Wait for previous process graph (boolean)</li>
-            <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">checkerperiod</code> - Checker period in seconds</li>
-          </ul>
+          <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
+            The workflow specification is a JSON array of FunctionSpec objects. Each FunctionSpec defines a task to execute.
+          </p>
+          <p class="text-xs text-blue-600 dark:text-blue-400 italic">
+            For detailed FunctionSpec structure, see the Process Submission modal or refer to the Colonies documentation.
+          </p>
         </div>
 
         <!-- Status Messages -->

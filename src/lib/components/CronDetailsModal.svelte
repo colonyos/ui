@@ -7,9 +7,10 @@
 		cron: Cron | null;
 		client: ColonyClient | null;
 		onClose: () => void;
+		onCronDeleted?: () => void;
 	}
 
-	let { show, cron, client, onClose }: Props = $props();
+	let { show, cron, client, onClose, onCronDeleted }: Props = $props();
 
 	interface CronDetails {
 		cronid?: string;
@@ -52,6 +53,9 @@
 	let loadingError = $state('');
 	let cronDetails: CronDetails | null = $state(null);
 	let workflowSpec: WorkflowSpec | null = $state(null);
+	let deletingStatus: 'idle' | 'deleting' | 'success' | 'error' = $state('idle');
+	let deleteError = $state('');
+	let showDeleteConfirm = $state(false);
 
 	$effect(() => {
 		if (show && cron && client) {
@@ -86,6 +90,58 @@
 			loadingError = error instanceof Error ? error.message : String(error);
 			loadingStatus = 'error';
 		}
+	}
+
+	let deleteTimeoutId: ReturnType<typeof setTimeout> | null = $state(null);
+
+	async function deleteCron() {
+		if (!cron || !client) {
+			deleteError = 'Cron or client not available';
+			deletingStatus = 'error';
+			return;
+		}
+
+		deletingStatus = 'deleting';
+		deleteError = '';
+
+		try {
+			await client.removeCron(cron.cronid);
+			deletingStatus = 'success';
+
+			// Close modal and notify parent after a short delay
+			deleteTimeoutId = setTimeout(() => {
+				onCronDeleted?.();
+				onClose();
+				deletingStatus = 'idle';
+				showDeleteConfirm = false;
+				deleteTimeoutId = null;
+			}, 1500);
+		} catch (error) {
+			console.error('Failed to delete cron:', error);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			deleteError = `Failed to delete cron job: ${errorMessage}`;
+			deletingStatus = 'error';
+		}
+	}
+
+	// Cleanup timeout on component unmount
+	$effect(() => {
+		return () => {
+			if (deleteTimeoutId) {
+				clearTimeout(deleteTimeoutId);
+				deleteTimeoutId = null;
+			}
+		};
+	});
+
+	function confirmDelete() {
+		showDeleteConfirm = true;
+	}
+
+	function cancelDelete() {
+		showDeleteConfirm = false;
+		deleteError = '';
+		deletingStatus = 'idle';
 	}
 
 	function formatDuration(seconds: number): string {
@@ -281,13 +337,70 @@
 			</div>
 
 			<!-- Footer -->
-			<div class="px-6 py-4 border-t border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 flex justify-end">
-				<button
-					onclick={onClose}
-					class="px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-slate-500 dark:hover:bg-slate-400 text-white rounded-lg transition-colors"
-				>
-					Close
-				</button>
+			<div class="px-6 py-4 border-t border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600">
+				<!-- Delete Status Messages -->
+				{#if deletingStatus === 'error'}
+					<div class="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded">
+						<strong>Error:</strong> {deleteError}
+					</div>
+				{:else if deletingStatus === 'success'}
+					<div class="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-2 rounded">
+						✓ Cron job deleted successfully!
+					</div>
+				{/if}
+
+				<!-- Delete Confirmation -->
+				{#if showDeleteConfirm}
+					<div class="mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+						<h5 class="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-2">Confirm Deletion</h5>
+						<p class="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+							Are you sure you want to delete this cron job? This action cannot be undone.
+						</p>
+						<div class="flex space-x-3">
+							<button
+								onclick={deleteCron}
+								disabled={deletingStatus === 'deleting'}
+								class="text-sm bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-3 py-1.5 rounded transition-colors"
+							>
+								{#if deletingStatus === 'deleting'}
+									<div class="flex items-center">
+										<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+										Deleting...
+									</div>
+								{:else}
+									Delete Cron Job
+								{/if}
+							</button>
+							<button
+								onclick={cancelDelete}
+								disabled={deletingStatus === 'deleting'}
+								class="text-sm bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-3 py-1.5 rounded transition-colors"
+							>
+								Cancel
+							</button>
+						</div>
+					</div>
+				{/if}
+
+				<div class="flex justify-between items-center">
+					<div>
+						{#if !showDeleteConfirm && deletingStatus !== 'success'}
+							<button
+								onclick={confirmDelete}
+								disabled={deletingStatus === 'deleting'}
+								class="text-sm bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-3 py-1.5 rounded transition-colors"
+							>
+								Delete Cron Job
+							</button>
+						{/if}
+					</div>
+					<button
+						onclick={onClose}
+						class="px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-slate-500 dark:hover:bg-slate-400 text-white rounded-lg transition-colors"
+					>
+						Close
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>

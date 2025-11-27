@@ -48,6 +48,7 @@
   let serverClient = $state<ColonyClient | null>(null);
   let colonyClient = $state<ColonyClient | null>(null);
   let processClient = $state<ColonyClient | null>(null); // For getProcess calls
+  let expandedWorkflows = $state<Record<string, boolean>>({}); // Track which workflows are expanded
 
   // Remove processes dialog state
   let showRemoveDialog = $state(false);
@@ -245,6 +246,21 @@
     }
     return { all: filteredProcesses };
   });
+
+  // Initialize expanded state for new workflows using $effect
+  $effect(() => {
+    if (groupByWorkflow) {
+      Object.keys(groupedProcesses).forEach((workflowId) => {
+        if (!(workflowId in expandedWorkflows)) {
+          expandedWorkflows[workflowId] = true;
+        }
+      });
+    }
+  });
+
+  function toggleWorkflow(workflowId: string) {
+    expandedWorkflows[workflowId] = !expandedWorkflows[workflowId];
+  }
 
   // Calculate workflow status
   function getWorkflowStatus(processes: Process[]) {
@@ -521,19 +537,33 @@
             <div
               class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
             >
-              <div
-                class="px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600"
+              <button
+                onclick={() => toggleWorkflow(workflowId)}
+                class="w-full px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-500 transition-colors"
               >
                 <div class="flex justify-between items-start">
                   <div class="flex-1">
                     <div class="flex items-center gap-3 mb-2">
+                      <svg
+                        class="w-5 h-5 text-gray-600 dark:text-slate-300 transition-transform {expandedWorkflows[workflowId] ? 'rotate-90' : ''}"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
                       <h3
-                        class="text-lg font-semibold text-gray-900 dark:text-white"
+                        class="text-lg font-semibold text-gray-900 dark:text-white text-left"
                       >
                         {#if workflowId === "no-workflow"}
                           Individual Processes
                         {:else}
-                          Workflow
+                          Workflow - {workflowId.substring(0, 5)}
                         {/if}
                       </h3>
                       {#if workflowStatus}
@@ -593,8 +623,10 @@
                     </div>
                   {/if}
                 </div>
-              </div>
-              <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} />
+              </button>
+              {#if expandedWorkflows[workflowId]}
+                <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} />
+              {/if}
             </div>
           {/each}
         {/if}

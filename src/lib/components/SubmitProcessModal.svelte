@@ -165,9 +165,77 @@
             id="process-json-input"
             bind:value={jsonInput}
             placeholder="Paste your process specification JSON here"
-            rows="7"
+            rows="10"
             class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg font-mono text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
           ></textarea>
+        </div>
+
+        <!-- Field Documentation -->
+        <div
+          class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
+        >
+          <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+            Function Specification Structure
+          </h4>
+
+          <!-- Function Spec (top level) -->
+          <div class="mb-3 pl-2 border-l-2 border-blue-300 dark:border-blue-600">
+            <h5 class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">FunctionSpec fields:</h5>
+            <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">nodename</code> - Node name for visualization (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">funcname</code> - Function name to execute (required)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">args</code> - Positional arguments (array, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">kwargs</code> - Keyword arguments (object, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">priority</code> - Priority level (int, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">maxwaittime</code> - Max wait time in seconds (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">maxexectime</code> - Max execution time in seconds (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">maxretries</code> - Maximum retry attempts (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">conditions</code> - Execution conditions (object, required)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">label</code> - Task label (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">env</code> - Environment variables (object, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">fs</code> - Filesystem configuration (object, optional)</li>
+            </ul>
+          </div>
+
+          <!-- Conditions structure -->
+          <div class="mb-3 pl-4 border-l-2 border-blue-300 dark:border-blue-600">
+            <h5 class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">conditions (required):</h5>
+            <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">colonyname</code> - Target colony name</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">executortype</code> - Executor type (e.g., "cli")</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">executornames</code> - Target executor names (array, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">dependencies</code> - Task dependencies (array, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">nodes</code> - Number of nodes (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">cpu</code> - CPU requirement (e.g., "100m", optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">processes</code> - Total processes (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">processespernode</code> - Processes per node (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">mem</code> - Memory (e.g., "1Gi", optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">storage</code> - Storage requirement (optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">gpu</code> - GPU requirement (object, optional)</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">walltime</code> - Wall time limit in seconds (optional)</li>
+            </ul>
+          </div>
+
+          <!-- GPU structure -->
+          <div class="mb-3 pl-6 border-l-2 border-blue-300 dark:border-blue-600">
+            <h5 class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">conditions → gpu (optional):</h5>
+            <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">name</code> - GPU name/type</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">mem</code> - GPU memory</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">count</code> - Number of GPUs per node</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">nodecount</code> - Number of GPU nodes</li>
+            </ul>
+          </div>
+
+          <!-- Kwargs structure -->
+          <div class="pl-4 border-l-2 border-blue-300 dark:border-blue-600">
+            <h5 class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">kwargs (function-specific):</h5>
+            <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">cmd</code> - Command to execute</li>
+              <li><code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">docker-image</code> - Docker image to use</li>
+              <li class="text-blue-600 dark:text-blue-400 italic">...additional function-specific parameters</li>
+            </ul>
+          </div>
         </div>
 
         <!-- Status Messages -->

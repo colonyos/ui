@@ -396,6 +396,16 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
+  async removeCron(cronId: string): Promise<any> {
+    const msg = {
+      msgtype: "removecronmsg",
+      cronid: cronId
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
   async getProcesses(colonyName: string, count: number = 100, state: number): Promise<any> {
     const msg = {
       msgtype: "getprocessesmsg",

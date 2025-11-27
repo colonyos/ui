@@ -220,6 +220,7 @@
 	cron={selectedCronForDetails}
 	client={colonyClient}
 	onClose={closeCronDetails}
+	onCronDeleted={loadCronData}
 />
 
 <!-- Add Cron Modal -->
