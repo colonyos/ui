@@ -6,6 +6,33 @@ When ready it's intended to run as a container that is managed by the colonies C
 
 Every RPC call is logged in the browser console along with the time it took to get a response.
 
+```console
+🔐 RPC Request
+Key type: colony
+Body: {
+  "msgtype": "getexecutorsmsg",
+  "colonyname": "cop-pilot",
+  "count": 100
+}
+✅ RPC Response received in 857.00ms
+🔐 RPC Request
+Key type: colony
+Body: {
+  "msgtype": "getprocessesmsg",
+  "colonyname": "cop-pilot",
+  "count": 100,
+  "state": 1
+} colony.ts:72:17
+✅ RPC Response received in 864.00ms
+🔐 RPC Request
+Key type: colony
+Body: {
+  "msgtype": "getprocessesmsg",
+  "colonyname": "cop-pilot",
+  "count": 100,
+  "state": 0
+}
+```
 This was created with Claude code
 
 ## Images
