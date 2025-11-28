@@ -189,11 +189,19 @@ Body: [Could not decode payload]`);
     return this.sendRPC(rpcMessage);
   }
 
-  async getStatistics(): Promise<any> {
-    // Use the working old format for now
-    // TODO: Update to getcolonystatsmsg when server supports it
+  async getStatistics(colonyName: string): Promise<any> {
     const msg = {
-      msgtype: "getstatisticsmsg"
+      colonyname: colonyName,
+      msgtype: "getcolonystatsmsg"
+    };
+
+    const rpcMessage = this.createRPCMsg(msg);
+    return this.sendRPC(rpcMessage);
+  }
+
+  async getServerInfo(): Promise<any> {
+    const msg = {
+      msgtype: "getserverinfomsg"
     };
 
     const rpcMessage = this.createRPCMsg(msg);

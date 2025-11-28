@@ -131,7 +131,7 @@
 	<!-- Executors List -->
 	<div class="bg-white dark:bg-slate-700 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
-			<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Executors (showing {displayedExecutors.length} of {data.totalExecutors})</h3>
+			<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Executors</h3>
 		</div>
 
 		<div class="divide-y divide-gray-200 dark:divide-slate-600">
@@ -203,7 +203,7 @@
 	{#if data.processes && data.processes.length > 0}
 		<div class="bg-white dark:bg-slate-700 rounded-lg shadow mt-6">
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Processes (showing {recentProcesses.length} of {data.statistics.totalProcesses})</h3>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Processes</h3>
 			</div>
 
 			<div class="overflow-x-auto">

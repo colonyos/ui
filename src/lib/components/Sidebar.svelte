@@ -10,7 +10,7 @@
         { name: "Workflows", path: "/workflows" },
         { name: "Cron", path: "/cron" },
         { name: "Generators", path: "/generators" },
-        { name: "Blueprints", path: "/blueprint-definitions" },
+        { name: "Blueprints", path: "/blueprints" },
         { name: "Files", path: "/filesystem" },
         { name: "Server", path: "/server" },
     ];
@@ -34,7 +34,7 @@
                     <li>
                         <a
                             href={tab.path}
-                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {((tab.path === '/filesystem' ? $page.url.pathname.startsWith('/filesystem') : false) || (tab.path === '/overview' ? $page.url.pathname.startsWith('/overview') : false) || (tab.path === '/blueprint-definitions' ? ($page.url.pathname.startsWith('/blueprint') || $page.url.pathname === '/blueprints') : false) || $page.url.pathname === tab.path)
+                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {((tab.path === '/filesystem' ? $page.url.pathname.startsWith('/filesystem') : false) || (tab.path === '/overview' ? $page.url.pathname.startsWith('/overview') : false) || (tab.path === '/blueprints' ? ($page.url.pathname.startsWith('/blueprint') || $page.url.pathname === '/blueprints') : false) || $page.url.pathname === tab.path)
                                 ? 'bg-blue-600 dark:bg-blue-700 text-white font-semibold shadow-md'
                                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}"
                         >

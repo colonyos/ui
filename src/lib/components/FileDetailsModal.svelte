@@ -16,6 +16,15 @@
 		}
 	}
 
+	function handleBackdropKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			if (e.target === e.currentTarget) {
+				onClose();
+			}
+		}
+	}
+
 	function formatSize(bytes: number): string {
 		if (bytes === 0) return '0 B';
 		const k = 1024;
@@ -104,6 +113,7 @@
 <div
 	class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
 	onclick={handleBackdropClick}
+	onkeydown={handleBackdropKeydown}
 	role="button"
 	tabindex="0"
 >

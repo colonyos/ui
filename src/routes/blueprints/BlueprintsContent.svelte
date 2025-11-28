@@ -264,20 +264,20 @@
 	<!-- Tabs -->
 	<div class="flex border-b border-gray-200 dark:border-slate-600 mb-6">
 		<button
-			onclick={() => switchTab('definitions')}
-			class="px-6 py-3 font-medium text-sm transition-colors border-b-2 {activeTab === 'definitions'
-				? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-				: 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'}"
-		>
-			Definitions
-		</button>
-		<button
 			onclick={() => switchTab('blueprints')}
 			class="px-6 py-3 font-medium text-sm transition-colors border-b-2 {activeTab === 'blueprints'
 				? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
 				: 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'}"
 		>
 			Blueprints
+		</button>
+		<button
+			onclick={() => switchTab('definitions')}
+			class="px-6 py-3 font-medium text-sm transition-colors border-b-2 {activeTab === 'definitions'
+				? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+				: 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'}"
+		>
+			Definitions
 		</button>
 	</div>
 

@@ -7,32 +7,26 @@
 	import { envConfig } from '$lib/config/env';
 	import { get } from 'svelte/store';
 
-	interface ServerStatistics {
-		colonies?: number;
-		executors?: number;
-		functions?: number;
-		processes?: number;
-		workflows?: number;
-		waitingprocesses?: number;
-		runningprocesses?: number;
-		successfulprocesses?: number;
-		failedprocesses?: number;
-		waitingworkflows?: number;
-		runningworkflows?: number;
-		successfulworkflows?: number;
-		failedworkflows?: number;
-		uptime?: number;
-		version?: string;
+	interface Backend {
+		type: string;
+		port: number;
+		host: string;
+	}
+
+	interface ServerInfo {
+		buildversion?: string;
+		buildtime?: string;
+		backends?: Backend[];
 		[key: string]: any;
 	}
 
-	let statistics = $state<ServerStatistics>({});
+	let serverInfo = $state<ServerInfo>({});
 	let users = $state<any>(null);
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('loading');
 	let loadingError = $state('');
 	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
-	let userClient = $state<ColonyClient | null>(null); // For addUser calls with user private key
+	let userClient = $state<ColonyClient | null>(null); // For operations requiring colony owner privileges
 
 	// Add user modal state
 	let showAddUserModal = $state(false);
@@ -76,11 +70,11 @@
 		loadingError = '';
 
 		try {
-			// Load statistics
-			console.log('Loading statistics...');
-			const statsResult = await serverClient.getStatistics();
-			console.log('Statistics loaded:', statsResult);
-			statistics = statsResult || {};
+			// Load server info
+			console.log('Loading server info...');
+			const infoResult = await serverClient.getServerInfo();
+			console.log('Server info loaded:', infoResult);
+			serverInfo = infoResult || {};
 
 			// Load users if colony client is available
 			if (colonyClient) {
@@ -112,22 +106,6 @@
 			console.error('Failed to load server data:', err);
 			loadingError = err instanceof Error ? err.message : String(err);
 			loadingStatus = 'error';
-		}
-	}
-
-	function formatUptime(seconds: number): string {
-		if (!seconds) return 'Unknown';
-
-		const days = Math.floor(seconds / 86400);
-		const hours = Math.floor((seconds % 86400) / 3600);
-		const minutes = Math.floor((seconds % 3600) / 60);
-
-		if (days > 0) {
-			return `${days}d ${hours}h ${minutes}m`;
-		} else if (hours > 0) {
-			return `${hours}h ${minutes}m`;
-		} else {
-			return `${minutes}m`;
 		}
 	}
 
@@ -305,106 +283,46 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<!-- Server Statistics -->
+			<!-- Server Information -->
 			<div class="bg-white dark:bg-slate-700 rounded-lg p-6 shadow-sm">
-				<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Statistics</h2>
+				<h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Server Information</h2>
 
 				<div class="space-y-3">
-					{#if statistics.colonies !== undefined}
+					{#if serverInfo.buildversion}
 						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Colonies:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.colonies}</span>
+							<span class="text-gray-600 dark:text-gray-400">Build Version:</span>
+							<span class="font-mono text-gray-900 dark:text-white font-semibold">{serverInfo.buildversion}</span>
 						</div>
 					{/if}
 
-					{#if statistics.executors !== undefined}
+					{#if serverInfo.buildtime}
 						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Executors:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.executors}</span>
+							<span class="text-gray-600 dark:text-gray-400">Build Time:</span>
+							<span class="font-mono text-gray-900 dark:text-white font-semibold">{formatDate(serverInfo.buildtime)}</span>
 						</div>
 					{/if}
 
-					{#if statistics.functions !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Functions:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.functions}</span>
-						</div>
-					{/if}
-
-					{#if statistics.processes !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Processes (Total):</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.processes}</span>
-						</div>
-					{/if}
-
-					{#if statistics.waitingprocesses !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Waiting Processes:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.waitingprocesses}</span>
-						</div>
-					{/if}
-
-					{#if statistics.runningprocesses !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Running Processes:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.runningprocesses}</span>
-						</div>
-					{/if}
-
-					{#if statistics.successfulprocesses !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Successful Processes:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.successfulprocesses}</span>
-						</div>
-					{/if}
-
-					{#if statistics.failedprocesses !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Failed Processes:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.failedprocesses}</span>
-						</div>
-					{/if}
-
-					{#if statistics.workflows !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Workflows (Total):</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.workflows}</span>
-						</div>
-					{/if}
-
-					{#if statistics.waitingworkflows !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Waiting Workflows:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.waitingworkflows}</span>
-						</div>
-					{/if}
-
-					{#if statistics.runningworkflows !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Running Workflows:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.runningworkflows}</span>
-						</div>
-					{/if}
-
-					{#if statistics.successfulworkflows !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Successful Workflows:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.successfulworkflows}</span>
-						</div>
-					{/if}
-
-					{#if statistics.failedworkflows !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Failed Workflows:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{statistics.failedworkflows}</span>
-						</div>
-					{/if}
-
-					{#if statistics.uptime !== undefined}
-						<div class="flex justify-between">
-							<span class="text-gray-600 dark:text-gray-400">Uptime:</span>
-							<span class="font-mono text-gray-900 dark:text-white font-semibold">{formatUptime(statistics.uptime)}</span>
+					{#if serverInfo.backends && serverInfo.backends.length > 0}
+						<div class="pt-3 border-t border-gray-200 dark:border-slate-600">
+							<h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Backends</h3>
+							<div class="space-y-2">
+								{#each serverInfo.backends as backend}
+									<div class="bg-gray-50 dark:bg-slate-600 rounded p-3">
+										<div class="flex justify-between items-center mb-1">
+											<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Type:</span>
+											<span class="text-sm font-mono text-gray-900 dark:text-white">{backend.type}</span>
+										</div>
+										<div class="flex justify-between items-center mb-1">
+											<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Host:</span>
+											<span class="text-sm font-mono text-gray-900 dark:text-white">{backend.host}</span>
+										</div>
+										<div class="flex justify-between items-center">
+											<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Port:</span>
+											<span class="text-sm font-mono text-gray-900 dark:text-white">{backend.port}</span>
+										</div>
+									</div>
+								{/each}
+							</div>
 						</div>
 					{/if}
 				</div>
