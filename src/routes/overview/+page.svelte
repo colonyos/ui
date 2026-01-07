@@ -32,31 +32,48 @@
 
 			// Get executors, processes, and statistics
 			if (colonies.length > 0) {
-				try {
-					// Get executors for the first colony
-					const colonyName = colonies[0]?.name;
-					if (colonyName) {
-						// Fetch statistics from the server
-						statistics = await colonyClient.getStatistics(colonyName);
+				const colonyName = colonies[0]?.name;
+				if (colonyName) {
+					// Fetch all data in parallel using Promise.allSettled for independent error handling
+					const [
+						statisticsResult,
+						executorsResult,
+						runningProcessesResult,
+						queuedProcessesResult,
+						successfulProcessesResult,
+						failedProcessesResult
+					] = await Promise.allSettled([
+						colonyClient.getStatistics(colonyName),
+						colonyClient.getExecutors(colonyName, 5),
+						colonyClient.getProcesses(colonyName, 3, 1), // Running
+						colonyClient.getProcesses(colonyName, 3, 0), // Waiting
+						colonyClient.getProcesses(colonyName, 3, 2), // Successful
+						colonyClient.getProcesses(colonyName, 3, 3)  // Failed
+					]);
 
-						// Fetch 5 executors for display
-						executors = await colonyClient.getExecutors(colonyName, 5);
+					// Extract results, handling failures gracefully
+					statistics = statisticsResult.status === 'fulfilled' ? statisticsResult.value : null;
+					executors = executorsResult.status === 'fulfilled' ? executorsResult.value : [];
 
-						// Get processes with different states (3 per state for display)
-						const runningProcesses = await colonyClient.getProcesses(colonyName, 3, 1); // Running
-						const queuedProcesses = await colonyClient.getProcesses(colonyName, 3, 0); // Waiting
-						const successfulProcesses = await colonyClient.getProcesses(colonyName, 3, 2); // Successful
-						const failedProcesses = await colonyClient.getProcesses(colonyName, 3, 3); // Failed
+					const runningProcesses = runningProcessesResult.status === 'fulfilled' ? runningProcessesResult.value : [];
+					const queuedProcesses = queuedProcessesResult.status === 'fulfilled' ? queuedProcessesResult.value : [];
+					const successfulProcesses = successfulProcessesResult.status === 'fulfilled' ? successfulProcessesResult.value : [];
+					const failedProcesses = failedProcessesResult.status === 'fulfilled' ? failedProcessesResult.value : [];
 
-						processes = [
-							...(Array.isArray(runningProcesses) ? runningProcesses : []),
-							...(Array.isArray(queuedProcesses) ? queuedProcesses : []),
-							...(Array.isArray(successfulProcesses) ? successfulProcesses : []),
-							...(Array.isArray(failedProcesses) ? failedProcesses : [])
-						];
-					}
-				} catch (e) {
-					console.warn('Failed to get colony data:', e);
+					// Log any failures for debugging
+					if (statisticsResult.status === 'rejected') console.warn('Failed to get statistics:', statisticsResult.reason);
+					if (executorsResult.status === 'rejected') console.warn('Failed to get executors:', executorsResult.reason);
+					if (runningProcessesResult.status === 'rejected') console.warn('Failed to get running processes:', runningProcessesResult.reason);
+					if (queuedProcessesResult.status === 'rejected') console.warn('Failed to get queued processes:', queuedProcessesResult.reason);
+					if (successfulProcessesResult.status === 'rejected') console.warn('Failed to get successful processes:', successfulProcessesResult.reason);
+					if (failedProcessesResult.status === 'rejected') console.warn('Failed to get failed processes:', failedProcessesResult.reason);
+
+					processes = [
+						...(Array.isArray(runningProcesses) ? runningProcesses : []),
+						...(Array.isArray(queuedProcesses) ? queuedProcesses : []),
+						...(Array.isArray(successfulProcesses) ? successfulProcesses : []),
+						...(Array.isArray(failedProcesses) ? failedProcesses : [])
+					];
 				}
 			}
 

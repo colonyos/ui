@@ -40,6 +40,10 @@ export class ColonyClient {
   }
 
   private getBaseUrl(): string {
+    // Support relative URLs for nginx proxy (when host is empty)
+    if (!this.endpoint.host || this.endpoint.host === '') {
+      return '/api';
+    }
     const protocol = this.tls ? 'https' : 'http';
     return `${protocol}://${this.endpoint.host}:${this.endpoint.port}/api`;
   }

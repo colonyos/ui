@@ -14,8 +14,10 @@
 	async function testConnection() {
 		const currentState = $appState;
 
-		if (!currentState.host || !currentState.port) {
-			appStateActions.setConnectionStatus('error', 'Host and port must be configured');
+		// Allow empty host/port for nginx proxy mode (uses relative /api URLs)
+		// Only validate if one is set but not the other
+		if ((currentState.host && !currentState.port) || (!currentState.host && currentState.port)) {
+			appStateActions.setConnectionStatus('error', 'Both host and port must be configured together');
 			return;
 		}
 
