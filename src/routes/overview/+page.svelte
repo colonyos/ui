@@ -205,12 +205,14 @@
 	<h1 class="page-title">Colony Overview</h1>
 </div>
 
+<!-- Error State -->
 {#if loadingStatus === 'error'}
 	<div class="mb-4 bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300 px-4 py-3 rounded">
 		<strong>Error:</strong> {loadingError}
 	</div>
 {/if}
 
+<!-- Refresh Button (always visible) -->
 <div class="flex justify-end items-center mb-4">
 	<button
 		onclick={loadColonyData}
@@ -232,4 +234,5 @@
 	</button>
 </div>
 
+<!-- Overview Content (always visible, shows with empty data when loading) -->
 <ColonyOverview data={overviewData} loading={loadingStatus === 'loading'} />

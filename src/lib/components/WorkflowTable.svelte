@@ -5,9 +5,10 @@
 	interface Props {
 		workflows: Workflow[];
 		onWorkflowClick?: (workflow: Workflow) => void;
+		loading?: boolean;
 	}
 
-	let { workflows, onWorkflowClick }: Props = $props();
+	let { workflows, onWorkflowClick, loading = false }: Props = $props();
 </script>
 
 <div class="table-container">
@@ -76,6 +77,12 @@
 	</table>
 
 	{#if workflows.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No workflows found</div>
+		<div class="table-empty">
+			{#if loading}
+				Loading workflows...
+			{:else}
+				No workflows found
+			{/if}
+		</div>
 	{/if}
 </div>

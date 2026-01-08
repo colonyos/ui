@@ -8,9 +8,10 @@
   interface Props {
     executors: Executor[];
     onExecutorClick?: (executor: Executor) => void;
+    loading?: boolean;
   }
 
-  let { executors, onExecutorClick }: Props = $props();
+  let { executors, onExecutorClick, loading = false }: Props = $props();
 
   type SortColumn = "name" | "status" | null;
   type SortDirection = "asc" | "desc";
@@ -199,7 +200,13 @@
   </table>
 
   {#if executors.length === 0}
-    <div class="text-center py-8 text-gray-500">No executors found</div>
+    <div class="table-empty">
+      {#if loading}
+        Loading executors...
+      {:else}
+        No executors found
+      {/if}
+    </div>
   {/if}
 </div>
 

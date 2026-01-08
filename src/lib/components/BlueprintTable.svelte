@@ -6,9 +6,10 @@
 		showDefinitionColumns?: boolean; // Show Group/Version/Scope columns for definitions
 		onBlueprintClick?: (blueprint: Blueprint | BlueprintDefinition) => void;
 		onRemoveBlueprint?: (blueprint: Blueprint | BlueprintDefinition) => void;
+		loading?: boolean; // Show loading state instead of "not found" message
 	}
 
-	let { blueprints, showDefinitionColumns = true, onBlueprintClick, onRemoveBlueprint }: Props = $props();
+	let { blueprints, showDefinitionColumns = true, onBlueprintClick, onRemoveBlueprint, loading = false }: Props = $props();
 
 	function formatDate(dateString?: string): string {
 		if (!dateString || dateString === '0001-01-01T00:00:00Z') {
@@ -160,6 +161,12 @@
 	</table>
 
 	{#if blueprints.length === 0}
-		<div class="table-empty">No blueprints found</div>
+		<div class="table-empty">
+			{#if loading}
+				{showDefinitionColumns ? 'Loading blueprint definitions...' : 'Loading blueprints...'}
+			{:else}
+				{showDefinitionColumns ? 'No blueprint definitions found' : 'No blueprints found'}
+			{/if}
+		</div>
 	{/if}
 </div>

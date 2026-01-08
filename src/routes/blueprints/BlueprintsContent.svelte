@@ -165,14 +165,6 @@
 		}
 	}
 
-	function switchTab(tab: 'definitions' | 'blueprints') {
-		if (tab === 'definitions') {
-			goto('/blueprint-definitions');
-		} else {
-			goto('/blueprints');
-		}
-	}
-
 	function handleBlueprintClick(blueprint: BlueprintDefinition | Blueprint) {
 		selectedBlueprintForDetails = blueprint;
 		showBlueprintDetails = true;
@@ -263,81 +255,89 @@
 
 	<!-- Tabs -->
 	<div class="flex border-b border-gray-200 dark:border-slate-600 mb-6">
-		<button
-			onclick={() => switchTab('blueprints')}
+		<a
+			href="/blueprints"
+			data-sveltekit-preload-data={activeTab === 'blueprints' ? 'off' : 'hover'}
 			class="px-6 py-3 font-medium text-sm transition-colors border-b-2 {activeTab === 'blueprints'
 				? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
 				: 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'}"
 		>
 			Blueprints
-		</button>
-		<button
-			onclick={() => switchTab('definitions')}
+		</a>
+		<a
+			href="/blueprint-definitions"
+			data-sveltekit-preload-data={activeTab === 'definitions' ? 'off' : 'hover'}
 			class="px-6 py-3 font-medium text-sm transition-colors border-b-2 {activeTab === 'definitions'
 				? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
 				: 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'}"
 		>
 			Definitions
-		</button>
+		</a>
 	</div>
 
-	<!-- Loading/Error States -->
-	{#if loadingStatus === 'loading'}
-		<div class="flex items-center justify-center py-4 text-gray-500 dark:text-slate-300">
-			<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-			Loading {activeTab === 'definitions' ? 'blueprint definitions' : 'blueprints'}...
-		</div>
-	{:else if loadingStatus === 'error'}
+	<!-- Error State -->
+	{#if loadingStatus === 'error'}
 		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4">
 			<strong>Error:</strong> {loadingError}
 		</div>
-	{:else}
-		<div class="flex justify-end gap-2 mb-4">
-			<!-- Add Blueprint Definition Button (only on definitions tab) -->
-			{#if activeTab === 'definitions'}
-				<button
-					onclick={openAddBlueprintModal}
-					disabled={!colonyClient}
-					aria-label="Add Blueprint Definition"
-					class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
-					title="Add Blueprint Definition"
-				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-					</svg>
-				</button>
-			{/if}
+	{/if}
 
-			<!-- Refresh Button -->
+	<!-- Action Buttons (always visible) -->
+	<div class="flex justify-end gap-2 mb-4">
+		<!-- Add Blueprint Definition Button (only on definitions tab) -->
+		{#if activeTab === 'definitions'}
 			<button
-				onclick={loadData}
-				aria-label="Refresh"
-				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
-				title="Refresh"
+				onclick={openAddBlueprintModal}
+				disabled={!colonyClient || loadingStatus === 'loading'}
+				aria-label="Add Blueprint Definition"
+				class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
+				title="Add Blueprint Definition"
 			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				</svg>
+			</button>
+		{/if}
+
+		<!-- Refresh Button -->
+		<button
+			onclick={loadData}
+			disabled={loadingStatus === 'loading'}
+			aria-label="Refresh"
+			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+			title="Refresh"
+		>
+			{#if loadingStatus === 'loading'}
+				<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			{:else}
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 				</svg>
-			</button>
-		</div>
+			{/if}
+		</button>
+	</div>
 
-		<!-- Definitions Tab Content -->
-		{#if activeTab === 'definitions'}
-			<BlueprintTable
-				blueprints={allBlueprintDefinitions}
-				showDefinitionColumns={true}
-				onBlueprintClick={handleBlueprintClick}
-				onRemoveBlueprint={handleRemoveBlueprintDefinition}
-			/>
-		{:else}
-			<!-- Blueprints Tab Content -->
-			<BlueprintTable
-				blueprints={allBlueprints}
-				showDefinitionColumns={false}
-				onBlueprintClick={handleBlueprintClick}
-				onRemoveBlueprint={handleRemoveBlueprint}
-			/>
-		{/if}
+	<!-- Table Content (always visible, shows skeleton when loading) -->
+	{#if activeTab === 'definitions'}
+		<BlueprintTable
+			blueprints={allBlueprintDefinitions}
+			showDefinitionColumns={true}
+			onBlueprintClick={handleBlueprintClick}
+			onRemoveBlueprint={handleRemoveBlueprintDefinition}
+			loading={loadingStatus === 'loading'}
+		/>
+	{:else}
+		<!-- Blueprints Tab Content -->
+		<BlueprintTable
+			blueprints={allBlueprints}
+			showDefinitionColumns={false}
+			onBlueprintClick={handleBlueprintClick}
+			onRemoveBlueprint={handleRemoveBlueprint}
+			loading={loadingStatus === 'loading'}
+		/>
 	{/if}
 </div>
 

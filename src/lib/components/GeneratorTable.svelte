@@ -5,9 +5,10 @@
 	interface Props {
 		generators: Generator[];
 		onGeneratorClick?: (generator: Generator) => void;
+		loading?: boolean;
 	}
 
-	let { generators, onGeneratorClick }: Props = $props();
+	let { generators, onGeneratorClick, loading = false }: Props = $props();
 
 	function formatDate(dateString: string): string {
 		if (!dateString || dateString === '0001-01-01T00:00:00Z') {
@@ -194,6 +195,12 @@
 	</table>
 
 	{#if generators.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No generators found</div>
+		<div class="table-empty">
+			{#if loading}
+				Loading generators...
+			{:else}
+				No generators found
+			{/if}
+		</div>
 	{/if}
 </div>

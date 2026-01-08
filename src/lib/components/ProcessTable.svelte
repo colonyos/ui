@@ -7,9 +7,10 @@
 		processes: Process[];
 		onProcessClick?: (process: Process) => void;
 		hideWorkflowColumn?: boolean;
+		loading?: boolean;
 	}
 
-	let { processes, onProcessClick, hideWorkflowColumn = false }: Props = $props();
+	let { processes, onProcessClick, hideWorkflowColumn = false, loading = false }: Props = $props();
 
 	type SortField = 'status' | 'function' | 'executor' | 'initiator' | 'deadline' | 'duration' | 'workflow' | null;
 	type SortDirection = 'asc' | 'desc';
@@ -378,6 +379,12 @@
 	</table>
 
 	{#if sortedProcesses.length === 0}
-		<div class="table-empty">No processes found</div>
+		<div class="table-empty">
+			{#if loading}
+				Loading processes...
+			{:else}
+				No processes found
+			{/if}
+		</div>
 	{/if}
 </div>

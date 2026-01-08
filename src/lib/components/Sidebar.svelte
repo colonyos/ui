@@ -15,6 +15,16 @@
         { name: "Server", path: "/server" },
     ];
 
+    function isActive(tabPath: string, currentPath: string): boolean {
+        // Special handling for paths that need startsWith matching
+        if (tabPath === '/filesystem') return currentPath.startsWith('/filesystem');
+        if (tabPath === '/overview') return currentPath.startsWith('/overview');
+        if (tabPath === '/blueprints') return currentPath.startsWith('/blueprint') || currentPath === '/blueprints';
+
+        // Exact match for other paths
+        return currentPath === tabPath;
+    }
+
     function toggleTheme() {
         console.log('Toggle theme clicked');
         themeStore.toggle();
@@ -31,10 +41,12 @@
         <nav class="flex-1">
             <ul class="space-y-2">
                 {#each tabs as tab}
+                    {@const active = isActive(tab.path, $page.url.pathname)}
                     <li>
                         <a
                             href={tab.path}
-                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {((tab.path === '/filesystem' ? $page.url.pathname.startsWith('/filesystem') : false) || (tab.path === '/overview' ? $page.url.pathname.startsWith('/overview') : false) || (tab.path === '/blueprints' ? ($page.url.pathname.startsWith('/blueprint') || $page.url.pathname === '/blueprints') : false) || $page.url.pathname === tab.path)
+                            data-sveltekit-preload-data={active ? 'off' : 'hover'}
+                            class="block px-4 py-2 rounded-lg transition-colors duration-200 {active
                                 ? 'bg-blue-600 dark:bg-blue-700 text-white font-semibold shadow-md'
                                 : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}"
                         >

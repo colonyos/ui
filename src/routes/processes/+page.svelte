@@ -414,29 +414,45 @@
           class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
           title="Refresh"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          {#if loadingStatus === "loading"}
+            <svg
+              class="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          {:else}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          {/if}
         </button>
       </div>
     </div>
 
-    <!-- Loading/Error States -->
-    {#if loadingStatus === "loading"}
-      <div class="flex items-center justify-center py-4 text-gray-500">
-        <div
-          class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"
-        ></div>
-        Loading process data...
-      </div>
-    {:else if loadingStatus === "error"}
+    <!-- Error State -->
+    {#if loadingStatus === "error"}
       <div
-        class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4"
+        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4"
       >
         <strong>Error:</strong>
         {loadingError}
       </div>
-    {:else}
+    {/if}
       <!-- Statistics -->
       <div class="flex space-x-4 text-sm mb-4">
         <button
@@ -516,7 +532,11 @@
       {#if groupByWorkflow}
         {#if Object.entries(groupedProcesses).length === 0}
           <div class="text-center py-8 text-gray-500 dark:text-slate-300">
-            No processes found
+            {#if loadingStatus === "loading"}
+              Loading processes...
+            {:else}
+              No processes found
+            {/if}
           </div>
         {:else}
           {#each Object.entries(groupedProcesses) as [workflowId, processes]}
@@ -613,7 +633,7 @@
                 </div>
               </button>
               {#if expandedWorkflows[workflowId]}
-                <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} />
+                <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} loading={loadingStatus === 'loading'} />
               {/if}
             </div>
           {/each}
@@ -622,9 +642,9 @@
         <ProcessTable
           processes={filteredProcesses}
           onProcessClick={handleProcessClick}
+          loading={loadingStatus === 'loading'}
         />
       {/if}
-    {/if}
   </div>
 </div>
 

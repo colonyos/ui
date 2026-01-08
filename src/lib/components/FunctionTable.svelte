@@ -4,9 +4,10 @@
 
   interface Props {
     functions: Function[];
+    loading?: boolean;
   }
 
-  let { functions }: Props = $props();
+  let { functions, loading = false }: Props = $props();
 </script>
 
 <div class="table-container">
@@ -80,8 +81,12 @@
   </table>
 
   {#if functions.length === 0}
-    <div class="text-center py-8 text-gray-500 dark:text-slate-300">
-      No functions found
+    <div class="table-empty">
+      {#if loading}
+        Loading functions...
+      {:else}
+        No functions found
+      {/if}
     </div>
   {/if}
 </div>
