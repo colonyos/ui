@@ -5,29 +5,19 @@
 	import ConnectionError from '$lib/components/ConnectionError.svelte';
 	import { appState, appStateActions } from '$lib/stores/appState';
 	import { themeStore } from '$lib/stores/themeStore';
-	import { ColonyEndpoint } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
 
 	let { children } = $props();
 
 	// Test connection to colony on mount
 	async function testConnection() {
-		const currentState = $appState;
-
-		// Allow empty host/port for nginx proxy mode (uses relative /api URLs)
-		// Only validate if one is set but not the other
-		if ((currentState.host && !currentState.port) || (!currentState.host && currentState.port)) {
-			appStateActions.setConnectionStatus('error', 'Both host and port must be configured together');
-			return;
-		}
-
 		appStateActions.setConnectionStatus('connecting');
 
 		try {
 			const client = await ClientFactory.getServerClient();
 
-			// Try to get colonies to test connection
-			await client.getColonies();
+			// Test connection with a lightweight call
+			await client.getStatistics();
 			appStateActions.setConnectionStatus('connected');
 		} catch (error) {
 			console.error('Connection test failed:', error);

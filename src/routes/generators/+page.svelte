@@ -8,11 +8,7 @@
 	import type { Generator } from '$lib/types/generator';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	interface ApiGenerator {
 		generatorid: string;
@@ -31,9 +27,7 @@
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allGenerators = $state<ApiGenerator[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -42,7 +36,6 @@
 	let showAddGeneratorModal = $state(false);
 
 	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadGeneratorData();
 
@@ -63,8 +56,15 @@
 	});
 
 	async function loadGeneratorData() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -74,27 +74,9 @@
 		allGenerators = [];
 
 		try {
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-				
-				const generatorPromises = colonies.map(async (colony) => {
-					try {
-						const generators = await colonyClient!.getGenerators(colony.name, 100);
-						return Array.isArray(generators) ? generators : [];
-					} catch (error) {
-						console.warn(`Failed to get generators for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const generatorArrays = await Promise.all(generatorPromises);
-				allGenerators = generatorArrays.flat();
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
-			}
+			const generators = await colonyClient.getGenerators(colonyName, 100);
+			allGenerators = Array.isArray(generators) ? generators : [];
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load generator data:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
@@ -102,24 +84,7 @@
 		}
 	}
 
-	function convertToLegacyFormat(apiGenerators: ApiGenerator[]): Generator[] {
-		return apiGenerators.map(generator => ({
-			generatorid: generator.generatorid,
-			initiatorid: generator.initiatorid,
-			initiatorname: generator.initiatorname,
-			colonyname: generator.colonyname,
-			name: generator.name,
-			workflowspec: generator.workflowspec,
-			trigger: generator.trigger,
-			timeout: generator.timeout,
-			firstpack: generator.firstpack,
-			lastrun: generator.lastrun,
-			queuesize: generator.queuesize,
-			checkerperiod: generator.checkerperiod
-		}));
-	}
-
-	let displayGenerators = $derived(convertToLegacyFormat(allGenerators));
+	let displayGenerators = $derived(allGenerators as Generator[]);
 
 	function handleGeneratorClick(generator: Generator) {
 		selectedGeneratorForDetails = generator;

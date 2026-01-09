@@ -4,6 +4,7 @@
 	import type { ColonyOverviewData, ExecutorNode, ProcessInfo, ColonyStatistics } from '$lib/types/overview';
 	import { ProcessState } from '$lib/types/process';
 	import ClientFactory from '$lib/utils/clientFactory';
+	import { envConfig } from '$lib/config/env';
 
 	let overviewData: ColonyOverviewData | null = $state(null);
 	let loadingStatus: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
@@ -17,69 +18,61 @@
 			const serverClient = await ClientFactory.getServerClient();
 			const colonyClient = await ClientFactory.getColonyClient();
 
+			const colonyName = envConfig.colonyName;
+			if (!colonyName) {
+				loadingError = 'Colony name not configured. Check environment variables.';
+				loadingStatus = 'error';
+				return;
+			}
+
 			// Get data using different keys for different operations
-			let colonies: any[] = [];
 			let executors: any[] = [];
 			let processes: any[] = [];
 			let statistics: any = null;
 
-			// Get colonies
-			try {
-				colonies = await serverClient.getColonies();
-			} catch (e) {
-				console.warn('Failed to get server data:', e);
-			}
+			// Fetch all data in parallel using Promise.allSettled for independent error handling
+			const [
+				statisticsResult,
+				executorsResult,
+				runningProcessesResult,
+				queuedProcessesResult,
+				successfulProcessesResult,
+				failedProcessesResult
+			] = await Promise.allSettled([
+				serverClient.getStatistics(),
+				colonyClient.getExecutors(colonyName, 5),
+				colonyClient.getProcesses(colonyName, 3, 1), // Running
+				colonyClient.getProcesses(colonyName, 3, 0), // Waiting
+				colonyClient.getProcesses(colonyName, 3, 2), // Successful
+				colonyClient.getProcesses(colonyName, 3, 3)  // Failed
+			]);
 
-			// Get executors, processes, and statistics
-			if (colonies.length > 0) {
-				const colonyName = colonies[0]?.name;
-				if (colonyName) {
-					// Fetch all data in parallel using Promise.allSettled for independent error handling
-					const [
-						statisticsResult,
-						executorsResult,
-						runningProcessesResult,
-						queuedProcessesResult,
-						successfulProcessesResult,
-						failedProcessesResult
-					] = await Promise.allSettled([
-						colonyClient.getStatistics(colonyName),
-						colonyClient.getExecutors(colonyName, 5),
-						colonyClient.getProcesses(colonyName, 3, 1), // Running
-						colonyClient.getProcesses(colonyName, 3, 0), // Waiting
-						colonyClient.getProcesses(colonyName, 3, 2), // Successful
-						colonyClient.getProcesses(colonyName, 3, 3)  // Failed
-					]);
+			// Extract results, handling failures gracefully
+			statistics = statisticsResult.status === 'fulfilled' ? statisticsResult.value : null;
+			executors = executorsResult.status === 'fulfilled' ? executorsResult.value : [];
 
-					// Extract results, handling failures gracefully
-					statistics = statisticsResult.status === 'fulfilled' ? statisticsResult.value : null;
-					executors = executorsResult.status === 'fulfilled' ? executorsResult.value : [];
+			const runningProcesses = runningProcessesResult.status === 'fulfilled' ? runningProcessesResult.value : [];
+			const queuedProcesses = queuedProcessesResult.status === 'fulfilled' ? queuedProcessesResult.value : [];
+			const successfulProcesses = successfulProcessesResult.status === 'fulfilled' ? successfulProcessesResult.value : [];
+			const failedProcesses = failedProcessesResult.status === 'fulfilled' ? failedProcessesResult.value : [];
 
-					const runningProcesses = runningProcessesResult.status === 'fulfilled' ? runningProcessesResult.value : [];
-					const queuedProcesses = queuedProcessesResult.status === 'fulfilled' ? queuedProcessesResult.value : [];
-					const successfulProcesses = successfulProcessesResult.status === 'fulfilled' ? successfulProcessesResult.value : [];
-					const failedProcesses = failedProcessesResult.status === 'fulfilled' ? failedProcessesResult.value : [];
+			// Log any failures for debugging
+			if (statisticsResult.status === 'rejected') console.warn('Failed to get statistics:', statisticsResult.reason);
+			if (executorsResult.status === 'rejected') console.warn('Failed to get executors:', executorsResult.reason);
+			if (runningProcessesResult.status === 'rejected') console.warn('Failed to get running processes:', runningProcessesResult.reason);
+			if (queuedProcessesResult.status === 'rejected') console.warn('Failed to get queued processes:', queuedProcessesResult.reason);
+			if (successfulProcessesResult.status === 'rejected') console.warn('Failed to get successful processes:', successfulProcessesResult.reason);
+			if (failedProcessesResult.status === 'rejected') console.warn('Failed to get failed processes:', failedProcessesResult.reason);
 
-					// Log any failures for debugging
-					if (statisticsResult.status === 'rejected') console.warn('Failed to get statistics:', statisticsResult.reason);
-					if (executorsResult.status === 'rejected') console.warn('Failed to get executors:', executorsResult.reason);
-					if (runningProcessesResult.status === 'rejected') console.warn('Failed to get running processes:', runningProcessesResult.reason);
-					if (queuedProcessesResult.status === 'rejected') console.warn('Failed to get queued processes:', queuedProcessesResult.reason);
-					if (successfulProcessesResult.status === 'rejected') console.warn('Failed to get successful processes:', successfulProcessesResult.reason);
-					if (failedProcessesResult.status === 'rejected') console.warn('Failed to get failed processes:', failedProcessesResult.reason);
-
-					processes = [
-						...(Array.isArray(runningProcesses) ? runningProcesses : []),
-						...(Array.isArray(queuedProcesses) ? queuedProcesses : []),
-						...(Array.isArray(successfulProcesses) ? successfulProcesses : []),
-						...(Array.isArray(failedProcesses) ? failedProcesses : [])
-					];
-				}
-			}
+			processes = [
+				...(Array.isArray(runningProcesses) ? runningProcesses : []),
+				...(Array.isArray(queuedProcesses) ? queuedProcesses : []),
+				...(Array.isArray(successfulProcesses) ? successfulProcesses : []),
+				...(Array.isArray(failedProcesses) ? failedProcesses : [])
+			];
 
 			// Prepare detailed overview data
-			if (colonies.length > 0 && executors.length > 0) {
-				const colonyName = colonies[0]?.name || 'Unknown Colony';
+			if (executors.length > 0) {
 
 
 				// Transform processes

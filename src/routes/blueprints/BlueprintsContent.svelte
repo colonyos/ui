@@ -8,21 +8,15 @@
 	import type { ColonyClient } from '$lib/api/colony';
 	import type { Blueprint, BlueprintDefinition } from '$lib/types/blueprint';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	// Determine active tab from URL
 	let activeTab = $derived($page.url.pathname === '/blueprint-definitions' ? 'definitions' : 'blueprints');
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allBlueprintDefinitions = $state<BlueprintDefinition[]>([]);
 	let allBlueprints = $state<Blueprint[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -31,9 +25,8 @@
 	let showAddBlueprintModal = $state(false);
 
 	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
-		await loadData();
+		// Data will be loaded by the $effect below
 
 		// Check if there's a blueprint ID in the URL
 		const urlId = $page.url.searchParams.get('id');
@@ -66,7 +59,7 @@
 
 	// Reload data when tab changes via URL
 	$effect(() => {
-		if (serverClient && colonyClient) {
+		if (colonyClient) {
 			// Access activeTab to make this effect reactive to URL changes
 			const tab = activeTab;
 			loadData();
@@ -82,8 +75,15 @@
 	}
 
 	async function loadBlueprintDefinitions() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -93,29 +93,9 @@
 		allBlueprintDefinitions = [];
 
 		try {
-			// First get colonies
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-
-				// Then get blueprint definitions for each colony
-				const blueprintPromises = colonies.map(async (colony) => {
-					try {
-						const blueprintDefinitions = await colonyClient!.getBlueprintDefinitions(colony.name);
-						return Array.isArray(blueprintDefinitions) ? blueprintDefinitions : [];
-					} catch (error) {
-						console.warn(`Failed to get blueprint definitions for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const blueprintArrays = await Promise.all(blueprintPromises);
-				allBlueprintDefinitions = blueprintArrays.flat();
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
-			}
+			const blueprintDefinitions = await colonyClient.getBlueprintDefinitions(colonyName);
+			allBlueprintDefinitions = Array.isArray(blueprintDefinitions) ? blueprintDefinitions : [];
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load blueprint definitions:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
@@ -124,8 +104,15 @@
 	}
 
 	async function loadBlueprintInstances() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -135,29 +122,9 @@
 		allBlueprints = [];
 
 		try {
-			// First get colonies
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-
-				// Then get blueprint instances for each colony
-				const blueprintPromises = colonies.map(async (colony) => {
-					try {
-						const blueprints = await colonyClient!.getAllBlueprints(colony.name);
-						return Array.isArray(blueprints) ? blueprints : [];
-					} catch (error) {
-						console.warn(`Failed to get blueprints for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const blueprintArrays = await Promise.all(blueprintPromises);
-				allBlueprints = blueprintArrays.flat();
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
-			}
+			const blueprints = await colonyClient.getAllBlueprints(colonyName);
+			allBlueprints = Array.isArray(blueprints) ? blueprints : [];
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load blueprint instances:', error);
 			loadingError = error instanceof Error ? error.message : String(error);

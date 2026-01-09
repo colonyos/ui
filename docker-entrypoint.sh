@@ -29,17 +29,17 @@ replace_placeholder() {
 # Replace all environment variable placeholders (for credentials and keys)
 echo "Injecting runtime environment variables..."
 
-replace_placeholder "__VITE_COLONIES_SERVER_PRVKEY__" "VITE_COLONIES_SERVER_PRVKEY"
-replace_placeholder "__VITE_COLONIES_COLONY_NAME__" "VITE_COLONIES_COLONY_NAME"
-replace_placeholder "__VITE_COLONIES_COLONY_PRVKEY__" "VITE_COLONIES_COLONY_PRVKEY"
-replace_placeholder "__VITE_COLONIES_PRVKEY__" "VITE_COLONIES_PRVKEY"
-replace_placeholder "__VITE_AWS_S3_ENDPOINT__" "VITE_AWS_S3_ENDPOINT"
-replace_placeholder "__VITE_AWS_S3_ACCESSKEY__" "VITE_AWS_S3_ACCESSKEY"
-replace_placeholder "__VITE_AWS_S3_SECRETKEY__" "VITE_AWS_S3_SECRETKEY"
-replace_placeholder "__VITE_AWS_S3_REGION__" "VITE_AWS_S3_REGION"
-replace_placeholder "__VITE_AWS_S3_BUCKET__" "VITE_AWS_S3_BUCKET"
-replace_placeholder "__VITE_AWS_S3_TLS__" "VITE_AWS_S3_TLS"
-replace_placeholder "__VITE_AWS_S3_SKIPVERIFY__" "VITE_AWS_S3_SKIPVERIFY"
+replace_placeholder "__VITE_COLONIES_SERVER_PRVKEY__" "COLONIES_SERVER_PRVKEY"
+replace_placeholder "__VITE_COLONIES_COLONY_NAME__" "COLONIES_COLONY_NAME"
+replace_placeholder "__VITE_COLONIES_COLONY_PRVKEY__" "COLONIES_COLONY_PRVKEY"
+replace_placeholder "__VITE_COLONIES_PRVKEY__" "COLONIES_PRVKEY"
+replace_placeholder "__VITE_AWS_S3_ENDPOINT__" "AWS_S3_ENDPOINT"
+replace_placeholder "__VITE_AWS_S3_ACCESSKEY__" "AWS_S3_ACCESSKEY"
+replace_placeholder "__VITE_AWS_S3_SECRETKEY__" "AWS_S3_SECRETKEY"
+replace_placeholder "__VITE_AWS_S3_REGION__" "AWS_S3_REGION"
+replace_placeholder "__VITE_AWS_S3_BUCKET__" "AWS_S3_BUCKET"
+replace_placeholder "__VITE_AWS_S3_TLS__" "AWS_S3_TLS"
+replace_placeholder "__VITE_AWS_S3_SKIPVERIFY__" "AWS_S3_SKIPVERIFY"
 
 echo "Environment variable injection complete."
 

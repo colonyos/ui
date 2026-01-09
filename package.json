@@ -33,6 +33,7 @@
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.913.0",
 		"@aws-sdk/s3-request-presigner": "^3.913.0",
-		"@xyflow/svelte": "^1.4.0"
+		"@xyflow/svelte": "^1.4.0",
+		"colonies-ts": "^0.1.2"
 	}
 }

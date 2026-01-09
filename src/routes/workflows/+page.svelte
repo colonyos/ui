@@ -110,13 +110,20 @@
 			console.log('=== Fetching workflows list (all states) ===');
 			console.log('Colony:', colonyName);
 
-			// Fetch workflows for all states: WAITING (0), RUNNING (1), SUCCESS (2), FAILED (3)
+			// Fetch workflows for all states in parallel: WAITING (0), RUNNING (1), SUCCESS (2), FAILED (3)
 			const states = [0, 1, 2, 3];
 			const allWorkflows: ProcessGraph[] = [];
 
-			for (const state of states) {
-				try {
-					const response = await colonyClient.getProcessGraphs(colonyName, 100, state);
+			const results = await Promise.allSettled(
+				states.map(state => colonyClient.getProcessGraphs(colonyName, 100, state))
+			);
+
+			// Process results from all parallel calls
+			results.forEach((result, index) => {
+				const state = states[index];
+
+				if (result.status === 'fulfilled') {
+					const response = result.value;
 					console.log(`=== getProcessGraphs Response for state ${state} ===`);
 					console.log('Response:', JSON.stringify(response, null, 2));
 
@@ -126,11 +133,11 @@
 						// Handle case where response is directly an array
 						allWorkflows.push(...response);
 					}
-				} catch (error) {
-					console.warn(`Failed to fetch workflows for state ${state}:`, error);
+				} else {
+					console.warn(`Failed to fetch workflows for state ${state}:`, result.reason);
 					// Continue with other states even if one fails
 				}
-			}
+			});
 
 			workflows = allWorkflows;
 			console.log(`Found ${workflows.length} total workflows across all states`);

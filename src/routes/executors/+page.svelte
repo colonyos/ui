@@ -8,11 +8,7 @@
 	import type { Executor } from '$lib/types/executor';
 	import { ExecutorState } from '$lib/types/executor';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	interface ApiExecutor {
 		executorid: string;
@@ -55,9 +51,7 @@
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allExecutors = $state<ApiExecutor[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -68,7 +62,6 @@
 	let showUnregistered = $state(false);
 
 	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadExecutorData();
 
@@ -94,8 +87,15 @@
 	});
 
 	async function loadExecutorData() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -105,29 +105,9 @@
 		allExecutors = [];
 
 		try {
-			// First get colonies
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-				
-				// Then get executors for each colony
-				const executorPromises = colonies.map(async (colony) => {
-					try {
-						const executors = await colonyClient!.getExecutors(colony.name);
-						return Array.isArray(executors) ? executors : [];
-					} catch (error) {
-						console.warn(`Failed to get executors for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const executorArrays = await Promise.all(executorPromises);
-				allExecutors = executorArrays.flat();
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
-			}
+			const executors = await colonyClient.getExecutors(colonyName);
+			allExecutors = Array.isArray(executors) ? executors : [];
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load executor data:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
@@ -138,14 +118,11 @@
 	// Convert API executors to the format expected by ExecutorTable
 	function convertToLegacyFormat(apiExecutors: ApiExecutor[]) {
 		return apiExecutors.map(executor => {
-			// Find the colony ID for this executor
-			const colony = colonies.find(c => c.name === executor.colonyname);
-			
 			return {
 				executorid: executor.executorid,
 				executorname: executor.executorname || 'Unnamed Executor',
 				executortype: executor.executortype || 'Unknown',
-				colonyid: colony?.colonyid || executor.colonyname,
+				colonyid: executor.colonyname,
 				state: executor.state, // Use the correct state values: 0=PENDING, 1=APPROVED, 2=REJECTED
 				lastheardfromtime: executor.lastheardfromtime,
 				commissiontime: executor.commissiontime,

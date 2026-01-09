@@ -8,11 +8,7 @@
 	import type { ColonyClient } from '$lib/api/colony';
 	import type { Cron } from '$lib/types/cron';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	interface ApiCron {
 		cronid: string;
@@ -45,9 +41,7 @@
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allCrons = $state<ApiCron[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -56,7 +50,6 @@
 	let showAddCronModal = $state(false);
 
 	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
 		colonyClient = await ClientFactory.getColonyClient();
 		await loadCronData();
 
@@ -77,8 +70,15 @@
 	});
 
 	async function loadCronData() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -88,43 +88,27 @@
 		allCrons = [];
 
 		try {
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-				
-				const cronPromises = colonies.map(async (colony) => {
-					try {
-						const crons = await colonyClient!.getCrons(colony.name, 100);
-						return Array.isArray(crons) ? crons : [];
-					} catch (error) {
-						// Silently handle "crons is nil" error - this just means no crons exist
-						const errorMessage = error instanceof Error ? error.message : String(error);
-						if (errorMessage.includes('crons is nil')) {
-							return [];
-						}
-						// Log other errors as warnings
-						console.warn(`Failed to get crons for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const cronArrays = await Promise.all(cronPromises);
-				allCrons = cronArrays.flat();
+			try {
+				const crons = await colonyClient.getCrons(colonyName, 100);
+				allCrons = Array.isArray(crons) ? crons : [];
 				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
+			} catch (error) {
+				// Silently handle "crons is nil" error - this just means no crons exist
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				if (errorMessage.includes('crons is nil')) {
+					allCrons = [];
+					loadingStatus = 'success';
+				} else {
+					// Log other errors
+					console.error(`Failed to get crons for ${colonyName}:`, error);
+					throw error;
+				}
 			}
 		} catch (error) {
 			console.error('Failed to load cron data:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
 			loadingStatus = 'error';
 		}
-	}
-
-	function convertToLegacyFormat(apiCrons: ApiCron[]): Cron[] {
-		// API already returns the correct format, just cast to Cron type
-		return apiCrons as Cron[];
 	}
 
 	function handleCronClick(cron: Cron) {
@@ -169,7 +153,7 @@
 		}
 	}
 
-	let displayCrons = $derived(convertToLegacyFormat(allCrons));
+	let displayCrons = $derived(allCrons as Cron[]);
 </script>
 
 <div class="space-y-6">

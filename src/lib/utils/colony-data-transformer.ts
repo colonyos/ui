@@ -20,8 +20,8 @@ export function transformColonyAPIToGraphData(apiData: ColonyAPIData): ColonyGra
 			const server: ColonyServer = {
 				id: colony.name || `server-${index}`,
 				name: colony.name || `Colony ${index + 1}`,
-				host: envConfig.host,
-				port: envConfig.port,
+				host: typeof window !== "undefined" ? window.location.hostname : "localhost",
+				port: typeof window !== "undefined" ? (window.location.port || (window.location.protocol === "https:" ? "443" : "80")) : "80",
 				status: 'online', // Default, could be enhanced with actual status
 				processCount: 0
 			};

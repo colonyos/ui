@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
-	import CryptoSingleton from '$lib/utils/cryptoSingleton';
+	import { Crypto } from 'colonies-ts';
 	import { appState } from '$lib/stores/appState';
 	import { envConfig } from '$lib/config/env';
 	import { get } from 'svelte/store';
@@ -143,10 +143,10 @@
 
 	async function generateKeyPair() {
 		try {
-			const crypto = await CryptoSingleton.getInstance();
+			const crypto = new Crypto();
 
 			// Generate private key
-			const privateKey = crypto.prvkey();
+			const privateKey = crypto.generatePrivateKey();
 
 			// Generate user ID from private key
 			const userId = crypto.id(privateKey);

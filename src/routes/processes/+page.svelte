@@ -10,12 +10,7 @@
   import { envConfig } from "$lib/config/env";
   import { ColonyClient, PROCESS_STATE_NOTSET } from "$lib/api/colony";
   import ClientFactory from "$lib/utils/clientFactory";
-  import CryptoSingleton from "$lib/utils/cryptoSingleton";
 
-  interface Colony {
-    colonyid: string;
-    name: string;
-  }
 
   // Load initial filter state from localStorage
   function getInitialFilterState() {
@@ -39,11 +34,9 @@
 
   let loadingStatus = $state<"idle" | "loading" | "success" | "error">("idle");
   let loadingError = $state("");
-  let colonies = $state<Colony[]>([]);
   let allProcesses = $state<Process[]>([]);
   let selectedState = $state<number | "">(initialState.selectedState);
   let groupByWorkflow = $state(initialState.groupByWorkflow);
-  let serverClient = $state<ColonyClient | null>(null);
   let colonyClient = $state<ColonyClient | null>(null);
   let processClient = $state<ColonyClient | null>(null); // For getProcess calls
   let expandedWorkflows = $state<Record<string, boolean>>({}); // Track which workflows are expanded
@@ -62,9 +55,6 @@
 
   // Submit process modal state
   let showSubmitModal = $state(false);
-
-  // We'll work with the first colony available or a default colony name
-  let targetColony = $state("default-colony");
 
   function handleProcessClick(process: Process) {
     selectedProcess = process;
@@ -121,26 +111,10 @@
   });
 
   onMount(async () => {
-    serverClient = await ClientFactory.getServerClient();
     colonyClient = await ClientFactory.getColonyClient();
 
-    // Set up a separate client for getProcess calls with general private key
-    const crypto = await CryptoSingleton.getInstance();
-    const host = $appState.host || envConfig.host;
-    const port = $appState.port || envConfig.port;
-    const tls = ($appState.tls || envConfig.tls) === "true";
-    const endpoint = { host, port };
-    const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
-
-    processClient = new ColonyClient(endpoint, crypto, tls);
-    const generalPrivateKey =
-      $appState.prvKey || envConfig.prvKey || colonyPrivateKey;
-    if (generalPrivateKey) {
-      console.log("Setting up processClient with general private key");
-      processClient.setPrivateKey(generalPrivateKey, "general");
-    } else {
-      console.warn("No general private key available for getProcess calls");
-    }
+    // Use GeneralClient for getProcess calls
+    processClient = await ClientFactory.getGeneralClient();
 
     await loadProcessData();
 
@@ -161,8 +135,15 @@
   });
 
   async function loadProcessData() {
-    if (!serverClient || !colonyClient) {
-      loadingError = "Clients not initialized. Check configuration.";
+    if (!colonyClient) {
+      loadingError = "Colony client not initialized. Check configuration.";
+      loadingStatus = "error";
+      return;
+    }
+
+    const colonyName = envConfig.colonyName;
+    if (!colonyName) {
+      loadingError = "Colony name not configured. Check environment variables.";
       loadingStatus = "error";
       return;
     }
@@ -172,42 +153,27 @@
     allProcesses = [];
 
     try {
-      const coloniesResult = await serverClient.getColonies();
-      if (Array.isArray(coloniesResult)) {
-        colonies = coloniesResult;
-
-        // Set target colony to the first available colony
-        if (colonies.length > 0) {
-          targetColony = colonies[0].name;
+      // Load processes for all states in parallel
+      const processPromises = stateOptions.map(async (stateOption) => {
+        try {
+          const processes = await colonyClient!.getProcesses(
+            colonyName,
+            100,
+            stateOption.value,
+          );
+          return Array.isArray(processes) ? processes : [];
+        } catch (error) {
+          console.warn(
+            `Failed to get processes for ${colonyName} state ${stateOption.label}:`,
+            error,
+          );
+          return [];
         }
+      });
 
-        // Load processes for each colony and each state
-        const processPromises = colonies.flatMap((colony) =>
-          stateOptions.map(async (stateOption) => {
-            try {
-              const processes = await colonyClient!.getProcesses(
-                colony.name,
-                100,
-                stateOption.value,
-              );
-              return Array.isArray(processes) ? processes : [];
-            } catch (error) {
-              console.warn(
-                `Failed to get processes for ${colony.name} state ${stateOption.label}:`,
-                error,
-              );
-              return [];
-            }
-          }),
-        );
-
-        const processArrays = await Promise.all(processPromises);
-        allProcesses = processArrays.flat();
-        loadingStatus = "success";
-      } else {
-        loadingError = "Failed to load colonies";
-        loadingStatus = "error";
-      }
+      const processArrays = await Promise.all(processPromises);
+      allProcesses = processArrays.flat();
+      loadingStatus = "success";
     } catch (error) {
       console.error("Failed to load process data:", error);
       loadingError = error instanceof Error ? error.message : String(error);
@@ -308,11 +274,12 @@
       const targetState =
         removeState !== "" ? Number(removeState) : PROCESS_STATE_NOTSET;
 
-      if (!targetColony) {
-        throw new Error("No colony available for removal");
+      const colonyName = envConfig.colonyName;
+      if (!colonyName) {
+        throw new Error("Colony name not configured");
       }
 
-      await colonyClient.removeAllProcesses(targetColony, targetState);
+      await colonyClient.removeAllProcesses(colonyName, targetState);
 
       removingStatus = "success";
       const timeoutId = setTimeout(() => {
@@ -330,7 +297,7 @@
   }
 
   function getRemovalDescription(): string {
-    const colony = targetColony || "current colony";
+    const colony = envConfig.colonyName || "current colony";
     const state =
       removeState !== ""
         ? stateOptions.find((s) => s.value === Number(removeState))?.label ||

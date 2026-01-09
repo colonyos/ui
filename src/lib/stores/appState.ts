@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import { ColonyEndpoint } from '$lib/api/colony';
 import { envConfig } from '$lib/config/env';
 
 export interface AppState {
@@ -11,9 +10,6 @@ export interface AppState {
 	executorPrvKey: string;
 	serverId: string;
 	serverPrvKey: string;
-	host: string;
-	port: string;
-	tls: string;
 	
 	// User information
 	username: string;
@@ -29,9 +25,6 @@ export interface AppState {
 	awsS3Bucket: string;
 	awsS3TLS: string;
 	awsS3SkipVerify: string;
-	
-	// Colony endpoint
-	colonies: ColonyEndpoint | null;
 
 	// UI state
 	sidebarCollapsed: string; // 'true' or 'false' as string
@@ -56,9 +49,6 @@ const defaultState: AppState = {
 	executorPrvKey: '',
 	serverId: '',
 	serverPrvKey: '',
-	host: '',
-	port: '443',
-	tls: 'true',
 	
 	// User information
 	username: '',
@@ -74,9 +64,6 @@ const defaultState: AppState = {
 	awsS3Bucket: '',
 	awsS3TLS: '',
 	awsS3SkipVerify: '',
-	
-	// Colony endpoint
-	colonies: null,
 
 	// UI state
 	sidebarCollapsed: 'false',
@@ -96,19 +83,6 @@ export const appState = writable<AppState>(defaultState);
 
 // Helper functions for common operations
 export const appStateActions = {
-	// Colony connection management
-	setColonyConnection: (colonyName: string, colonyPrvKey: string, host: string, port: string, tls: string) => {
-		appState.update(state => ({
-			...state,
-			colonyName,
-			colonyPrvKey,
-			host,
-			port,
-			tls,
-			colonies: new ColonyEndpoint(host, port)
-		}));
-	},
-
 	// UI state
 	toggleSidebar: () => {
 		appState.update(state => ({
@@ -142,16 +116,12 @@ export const appStateActions = {
 	loadFromConfig: async () => {
 		// Start with environment variables (build-time config)
 		console.log('Loading environment configuration:', {
-			host: envConfig.host || '(not set)',
-			port: envConfig.port || '(not set)',
-			colonyName: envConfig.colonyName || '(not set)',
-			tls: envConfig.tls
+			colonyName: envConfig.colonyName || '(not set)'
 		});
-		
+
 		appState.update(state => ({
 			...state,
-			...envConfig,
-			colonies: envConfig.host && envConfig.port ? new ColonyEndpoint(envConfig.host, envConfig.port) : null
+			...envConfig
 		}));
 
 		// Override with localStorage if enabled and available (user preferences)

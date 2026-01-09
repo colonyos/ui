@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import ClientFactory from '$lib/utils/clientFactory';
 	import FileDetailsModal from '$lib/components/FileDetailsModal.svelte';
+	import { envConfig } from '$lib/config/env';
 
 	let loading = $state(false);
 	let error = $state<string | null>(null);
@@ -37,25 +38,21 @@
 
 		try {
 			const client = await ClientFactory.getColonyClient();
-			const colonies = await ClientFactory.getServerClient().then(c => c.getColonies());
+			const colonyName = envConfig.colonyName;
 
-			// Get file labels for all colonies
-			const allLabels: any[] = [];
-			for (const colony of colonies) {
-				try {
-					const result = await client.getFileLabels(colony.name, '', false);
-					if (result && Array.isArray(result)) {
-						allLabels.push(...result.map((label: any) => ({
-							...label,
-							colonyname: colony.name
-						})));
-					}
-				} catch (err) {
-					console.error(`Failed to load file labels for colony ${colony.name}:`, err);
-				}
+			if (!colonyName) {
+				throw new Error('Colony name not configured. Check environment variables.');
 			}
 
-			labels = allLabels;
+			const result = await client.getFileLabels(colonyName, '', false);
+			if (result && Array.isArray(result)) {
+				labels = result.map((label: any) => ({
+					...label,
+					colonyname: colonyName
+				}));
+			} else {
+				labels = [];
+			}
 		} catch (err) {
 			console.error('Failed to load file labels:', err);
 			error = err instanceof Error ? err.message : 'Failed to load file labels';
