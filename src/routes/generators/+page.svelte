@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import GeneratorTable from '$lib/components/GeneratorTable.svelte';
@@ -35,24 +34,26 @@
 	let selectedGeneratorForDetails = $state<Generator | null>(null);
 	let showAddGeneratorModal = $state(false);
 
-	onMount(async () => {
-		colonyClient = await ClientFactory.getColonyClient();
-		await loadGeneratorData();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			await loadGeneratorData();
 
-		// Check if there's a generator ID in the URL
-		const urlGeneratorId = $page.url.searchParams.get('id');
-		if (urlGeneratorId) {
-			// Try to find the generator in the loaded list
-			const generator = displayGenerators.find(g => g.generatorid === urlGeneratorId);
-			if (generator) {
-				selectedGeneratorForDetails = generator;
-				showGeneratorDetails = true;
-			} else {
-				// Generator not in list, create a minimal object
-				selectedGeneratorForDetails = { generatorid: urlGeneratorId } as Generator;
-				showGeneratorDetails = true;
+			// Check if there's a generator ID in the URL
+			const urlGeneratorId = $page.url.searchParams.get('id');
+			if (urlGeneratorId) {
+				// Try to find the generator in the loaded list
+				const generator = displayGenerators.find(g => g.generatorid === urlGeneratorId);
+				if (generator) {
+					selectedGeneratorForDetails = generator;
+					showGeneratorDetails = true;
+				} else {
+					// Generator not in list, create a minimal object
+					selectedGeneratorForDetails = { generatorid: urlGeneratorId } as Generator;
+					showGeneratorDetails = true;
+				}
 			}
-		}
+		})();
 	});
 
 	async function loadGeneratorData() {

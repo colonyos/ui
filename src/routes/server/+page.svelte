@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
 	import { Crypto } from 'colonies-ts';
@@ -49,11 +48,13 @@
 	let isDeletingUser = $state(false);
 	let deleteUserError = $state('');
 
-	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
-		colonyClient = await ClientFactory.getColonyClient();
-		userClient = await ClientFactory.getGeneralClient();
-		await loadServerData();
+	$effect(() => {
+		(async () => {
+			serverClient = await ClientFactory.getServerClient();
+			colonyClient = await ClientFactory.getColonyClient();
+			userClient = await ClientFactory.getGeneralClient();
+			await loadServerData();
+		})();
 	});
 
 	async function loadServerData() {

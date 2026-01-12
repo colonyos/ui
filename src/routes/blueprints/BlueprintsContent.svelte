@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import BlueprintTable from '$lib/components/BlueprintTable.svelte';
@@ -24,37 +23,39 @@
 	let selectedBlueprintForDetails = $state<BlueprintDefinition | Blueprint | null>(null);
 	let showAddBlueprintModal = $state(false);
 
-	onMount(async () => {
-		colonyClient = await ClientFactory.getColonyClient();
-		// Data will be loaded by the $effect below
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			// Data will be loaded by the $effect below
 
-		// Check if there's a blueprint ID in the URL
-		const urlId = $page.url.searchParams.get('id');
-		if (urlId) {
-			if (activeTab === 'definitions') {
-				// Find in definitions
-				const def = allBlueprintDefinitions.find(d => d.blueprintdefinitionid === urlId);
-				if (def) {
-					selectedBlueprintForDetails = def;
-					showBlueprintDetails = true;
+			// Check if there's a blueprint ID in the URL
+			const urlId = $page.url.searchParams.get('id');
+			if (urlId) {
+				if (activeTab === 'definitions') {
+					// Find in definitions
+					const def = allBlueprintDefinitions.find(d => d.blueprintdefinitionid === urlId);
+					if (def) {
+						selectedBlueprintForDetails = def;
+						showBlueprintDetails = true;
+					} else {
+						// Create minimal object to trigger modal
+						selectedBlueprintForDetails = { blueprintdefinitionid: urlId } as BlueprintDefinition;
+						showBlueprintDetails = true;
+					}
 				} else {
-					// Create minimal object to trigger modal
-					selectedBlueprintForDetails = { blueprintdefinitionid: urlId } as BlueprintDefinition;
-					showBlueprintDetails = true;
-				}
-			} else {
-				// Find in blueprints
-				const bp = allBlueprints.find(b => b.blueprintid === urlId);
-				if (bp) {
-					selectedBlueprintForDetails = bp;
-					showBlueprintDetails = true;
-				} else {
-					// Create minimal object to trigger modal
-					selectedBlueprintForDetails = { blueprintid: urlId } as Blueprint;
-					showBlueprintDetails = true;
+					// Find in blueprints
+					const bp = allBlueprints.find(b => b.blueprintid === urlId);
+					if (bp) {
+						selectedBlueprintForDetails = bp;
+						showBlueprintDetails = true;
+					} else {
+						// Create minimal object to trigger modal
+						selectedBlueprintForDetails = { blueprintid: urlId } as Blueprint;
+						showBlueprintDetails = true;
+					}
 				}
 			}
-		}
+		})();
 	});
 
 	// Reload data when tab changes via URL

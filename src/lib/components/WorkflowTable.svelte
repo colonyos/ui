@@ -15,22 +15,22 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Workflow
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					State
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Initiator
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Submitted
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Duration
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Processes
 				</th>
 			</tr>

@@ -74,7 +74,7 @@
   <table class="table-base">
     <thead class="table-header">
       <tr>
-        <th
+        <th scope="col"
           class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500 select-none"
           onclick={() => toggleSort("name")}
         >
@@ -99,7 +99,7 @@
             {/if}
           </div>
         </th>
-        <th
+        <th scope="col"
           class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500 select-none"
           onclick={() => toggleSort("status")}
         >
@@ -124,8 +124,8 @@
             {/if}
           </div>
         </th>
-        <th class="table-header-cell"> Hardware </th>
-        <th class="table-header-cell"> Last Heard </th>
+        <th scope="col" class="table-header-cell"> Hardware </th>
+        <th scope="col" class="table-header-cell"> Last Heard </th>
       </tr>
     </thead>
     <tbody class="table-body">

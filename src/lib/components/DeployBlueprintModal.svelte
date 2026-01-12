@@ -138,18 +138,25 @@
 			await client.addBlueprint(blueprintToCreate);
 
 			deployStatus = 'success';
-
-			// Wait a bit to show success message, then close
-			setTimeout(() => {
-				onBlueprintDeployed?.();
-				onClose();
-			}, 1500);
+			// The timeout is now handled by the $effect below
 		} catch (error) {
 			console.error('Failed to deploy blueprint:', error);
 			deployError = error instanceof Error ? error.message : String(error);
 			deployStatus = 'error';
 		}
 	}
+
+	// Effect to handle auto-close after success with proper cleanup
+	$effect(() => {
+		if (deployStatus === 'success') {
+			const timeoutId = setTimeout(() => {
+				onBlueprintDeployed?.();
+				onClose();
+			}, 1500);
+
+			return () => clearTimeout(timeoutId);
+		}
+	});
 
 	function handleBackdropClick(event: MouseEvent) {
 		if (event.target === event.currentTarget) {

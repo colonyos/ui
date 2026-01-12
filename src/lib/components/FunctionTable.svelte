@@ -14,10 +14,10 @@
   <table class="table-base">
     <thead class="table-header">
       <tr>
-        <th class="table-header-cell"> Function </th>
-        <th class="table-header-cell text-center"> Executions </th>
-        <th class="table-header-cell"> Wait Time </th>
-        <th class="table-header-cell"> Execution Time </th>
+        <th scope="col" class="table-header-cell"> Function </th>
+        <th scope="col" class="table-header-cell text-center"> Executions </th>
+        <th scope="col" class="table-header-cell"> Wait Time </th>
+        <th scope="col" class="table-header-cell"> Execution Time </th>
       </tr>
     </thead>
     <tbody class="table-body">

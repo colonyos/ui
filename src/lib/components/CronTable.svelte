@@ -102,22 +102,22 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Cron Job
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Schedule
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Next Run
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Last Run
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Initiator
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Actions
 				</th>
 			</tr>

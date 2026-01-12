@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import FunctionTable from "$lib/components/FunctionTable.svelte";
   import { appState } from "$lib/stores/appState";
   import { envConfig } from "$lib/config/env";
@@ -25,9 +24,11 @@
   let expandedExecutors = $state<Record<string, boolean>>({}); // Track which executors are expanded
   let searchTerm = $state("");
 
-  onMount(async () => {
-    userClient = await ClientFactory.getColonyClient();
-    await loadFunctionData();
+  $effect(() => {
+    (async () => {
+      userClient = await ClientFactory.getColonyClient();
+      await loadFunctionData();
+    })();
   });
 
   async function loadFunctionData() {

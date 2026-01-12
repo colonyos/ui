@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import WorkflowDAG from '$lib/components/WorkflowDAG.svelte';
@@ -8,6 +7,8 @@
 	import { envConfig } from '$lib/config/env';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
+	import { getProcessStateLabel, getProcessStateColor } from '$lib/types/process';
+	import { formatDate } from '$lib/utils/dateUtils';
 
 	interface ProcessGraph {
 		processgraphid: string;
@@ -32,23 +33,25 @@
 	let colonyName = $state('');
 	let searchTerm = $state('');
 
-	onMount(async () => {
-		colonyClient = await ClientFactory.getColonyClient();
-		colonyName = $appState.colonyName || envConfig.colonyName || '';
-		await loadWorkflows();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			colonyName = $appState.colonyName || envConfig.colonyName || '';
+			await loadWorkflows();
 
-		// Check if there's a workflow ID in the URL
-		const urlWorkflowId = $page.url.searchParams.get('id');
-		if (urlWorkflowId && colonyClient) {
-			// Try to find the workflow in the loaded list
-			const workflow = workflows.find(w => w.processgraphid === urlWorkflowId);
-			if (workflow) {
-				selectWorkflow(workflow);
-			} else {
-				// Workflow not in list, try to load it directly
-				await loadWorkflowById(urlWorkflowId);
+			// Check if there's a workflow ID in the URL
+			const urlWorkflowId = $page.url.searchParams.get('id');
+			if (urlWorkflowId && colonyClient) {
+				// Try to find the workflow in the loaded list
+				const workflow = workflows.find(w => w.processgraphid === urlWorkflowId);
+				if (workflow) {
+					selectWorkflow(workflow);
+				} else {
+					// Workflow not in list, try to load it directly
+					await loadWorkflowById(urlWorkflowId);
+				}
 			}
-		}
+		})();
 	});
 
 	async function loadWorkflowById(workflowId: string) {
@@ -124,8 +127,10 @@
 
 				if (result.status === 'fulfilled') {
 					const response = result.value;
-					console.log(`=== getProcessGraphs Response for state ${state} ===`);
-					console.log('Response:', JSON.stringify(response, null, 2));
+					if (import.meta.env.DEV) {
+						console.log(`=== getProcessGraphs Response for state ${state} ===`);
+						console.log('Response:', JSON.stringify(response, null, 2));
+					}
 
 					if (response && response.processgraphs && Array.isArray(response.processgraphs)) {
 						allWorkflows.push(...response.processgraphs);
@@ -165,18 +170,25 @@
 		goto(`/workflows?id=${workflow.processgraphid}`, { replaceState: true });
 
 		try {
-			console.log('=== Fetching workflow graph data ===');
-			console.log('Workflow ID:', workflow.processgraphid);
+			if (import.meta.env.DEV) {
+				console.log('=== Fetching workflow graph data ===');
+				console.log('Workflow ID:', workflow.processgraphid);
+			}
 
 			graphData = await colonyClient.getProcessGraph(workflow.processgraphid);
-			console.log('=== getProcessGraph Response ===');
-			console.log('Full response:', JSON.stringify(graphData, null, 2));
+
+			if (import.meta.env.DEV) {
+				console.log('=== getProcessGraph Response ===');
+				console.log('Full response:', JSON.stringify(graphData, null, 2));
+			}
 
 			if (graphData && graphData.nodes && graphData.edges) {
-				console.log('Graph structure loaded:', {
-					nodes: graphData.nodes.length,
-					edges: graphData.edges.length
-				});
+				if (import.meta.env.DEV) {
+					console.log('Graph structure loaded:', {
+						nodes: graphData.nodes.length,
+						edges: graphData.edges.length
+					});
+				}
 				graphLoadingStatus = 'success';
 			} else {
 				graphLoadingError = 'Invalid workflow graph data received from server';
@@ -241,36 +253,6 @@
 		)
 	);
 
-	function getWorkflowStateLabel(state: number): string {
-		switch (state) {
-			case 0: return 'Waiting';
-			case 1: return 'Running';
-			case 2: return 'Successful';
-			case 3: return 'Failed';
-			default: return 'Unknown';
-		}
-	}
-
-	function getWorkflowStateColor(state: number): string {
-		switch (state) {
-			case 0: return 'bg-yellow-100 text-yellow-800';
-			case 1: return 'bg-blue-100 text-blue-800';
-			case 2: return 'bg-green-100 text-green-800';
-			case 3: return 'bg-red-100 text-red-800';
-			default: return 'bg-gray-100 text-gray-800';
-		}
-	}
-
-	function formatTime(timeString: string): string {
-		if (!timeString || timeString === '0001-01-01T00:00:00Z' || timeString === '0001-01-01T00:53:28+00:53') {
-			return '-';
-		}
-		try {
-			return new Date(timeString).toLocaleString();
-		} catch {
-			return 'Invalid time';
-		}
-	}
 
 	function openSubmitModal() {
 		showSubmitModal = true;
@@ -413,15 +395,15 @@
 										{workflow.initiatorname || '-'}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
-										<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {getWorkflowStateColor(workflow.state)}">
-											{getWorkflowStateLabel(workflow.state)}
+										<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {getProcessStateColor(workflow.state)}">
+											{getProcessStateLabel(workflow.state)}
 										</span>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
 										{workflow.processids?.length || 0}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
-										{formatTime(workflow.submissiontime)}
+										{formatDate(workflow.submissiontime)}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
 										<button

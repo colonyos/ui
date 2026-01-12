@@ -196,6 +196,7 @@
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     role="dialog"
     aria-modal="true"
+    aria-labelledby="executor-details-title"
     tabindex="-1"
     onclick={handleBackdropClick}
     onkeydown={(e) => e.key === "Escape" && onClose()}
@@ -207,7 +208,7 @@
       <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 id="executor-details-title" class="text-lg font-semibold text-gray-900 dark:text-white">
               Executor Details
             </h3>
             {#if executor}

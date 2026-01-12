@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import ProcessTable from "$lib/components/ProcessTable.svelte";
@@ -110,28 +109,30 @@
     }
   });
 
-  onMount(async () => {
-    colonyClient = await ClientFactory.getColonyClient();
+  $effect(() => {
+    (async () => {
+      colonyClient = await ClientFactory.getColonyClient();
 
-    // Use GeneralClient for getProcess calls
-    processClient = await ClientFactory.getGeneralClient();
+      // Use GeneralClient for getProcess calls
+      processClient = await ClientFactory.getGeneralClient();
 
-    await loadProcessData();
+      await loadProcessData();
 
-    // Check if there's a process ID in the URL
-    const urlProcessId = $page.url.searchParams.get('id');
-    if (urlProcessId) {
-      // Try to find the process in the loaded list
-      const process = allProcesses.find(p => p.processid === urlProcessId);
-      if (process) {
-        selectedProcess = process;
-        showProcessModal = true;
-      } else {
-        // Process not in list, create a minimal process object to trigger modal load
-        selectedProcess = { processid: urlProcessId } as Process;
-        showProcessModal = true;
+      // Check if there's a process ID in the URL
+      const urlProcessId = $page.url.searchParams.get('id');
+      if (urlProcessId) {
+        // Try to find the process in the loaded list
+        const process = allProcesses.find(p => p.processid === urlProcessId);
+        if (process) {
+          selectedProcess = process;
+          showProcessModal = true;
+        } else {
+          // Process not in list, create a minimal process object to trigger modal load
+          selectedProcess = { processid: urlProcessId } as Process;
+          showProcessModal = true;
+        }
       }
-    }
+    })();
   });
 
   async function loadProcessData() {
@@ -210,16 +211,27 @@
   // Initialize expanded state for new workflows using $effect
   $effect(() => {
     if (groupByWorkflow) {
+      const newExpanded = { ...expandedWorkflows };
+      let hasChanges = false;
+
       Object.keys(groupedProcesses).forEach((workflowId) => {
-        if (!(workflowId in expandedWorkflows)) {
-          expandedWorkflows[workflowId] = true;
+        if (!(workflowId in newExpanded)) {
+          newExpanded[workflowId] = true;
+          hasChanges = true;
         }
       });
+
+      if (hasChanges) {
+        expandedWorkflows = newExpanded;
+      }
     }
   });
 
   function toggleWorkflow(workflowId: string) {
-    expandedWorkflows[workflowId] = !expandedWorkflows[workflowId];
+    expandedWorkflows = {
+      ...expandedWorkflows,
+      [workflowId]: !expandedWorkflows[workflowId]
+    };
   }
 
   // Calculate workflow status

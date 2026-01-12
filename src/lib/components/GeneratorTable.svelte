@@ -91,31 +91,31 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Generator
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Status
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Trigger
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Queue
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Workflow
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Timing
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Last Activity
 				</th>
 			</tr>
 		</thead>
 		<tbody class="table-body">
-			{#each generators as generator}
+			{#each generators as generator (generator.generatorid)}
 				{@const status = getGeneratorStatus(generator.lastrun, generator.timeout)}
 				{@const queueStatus = getQueueStatus(generator.queuesize)}
 				{@const workflow = parseWorkflowSpec(generator.workflowspec)}

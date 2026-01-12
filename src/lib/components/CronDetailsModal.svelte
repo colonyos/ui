@@ -92,8 +92,6 @@
 		}
 	}
 
-	let deleteTimeoutId: ReturnType<typeof setTimeout> | null = $state(null);
-
 	async function deleteCron() {
 		if (!cron || !client) {
 			deleteError = 'Cron or client not available';
@@ -107,15 +105,7 @@
 		try {
 			await client.removeCron(cron.cronid);
 			deletingStatus = 'success';
-
-			// Close modal and notify parent after a short delay
-			deleteTimeoutId = setTimeout(() => {
-				onCronDeleted?.();
-				onClose();
-				deletingStatus = 'idle';
-				showDeleteConfirm = false;
-				deleteTimeoutId = null;
-			}, 1500);
+			// The timeout is now handled by the $effect below
 		} catch (error) {
 			console.error('Failed to delete cron:', error);
 			const errorMessage = error instanceof Error ? error.message : String(error);
@@ -123,6 +113,20 @@
 			deletingStatus = 'error';
 		}
 	}
+
+	// Effect to handle auto-close after delete success with proper cleanup
+	$effect(() => {
+		if (deletingStatus === 'success') {
+			const timeoutId = setTimeout(() => {
+				onCronDeleted?.();
+				onClose();
+				deletingStatus = 'idle';
+				showDeleteConfirm = false;
+			}, 1500);
+
+			return () => clearTimeout(timeoutId);
+		}
+	});
 
 	// Cleanup timeout on component unmount
 	$effect(() => {

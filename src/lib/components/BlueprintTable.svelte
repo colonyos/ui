@@ -47,34 +47,34 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Name
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Kind
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Colony
 				</th>
 				{#if showDefinitionColumns}
-					<th class="table-header-cell">
+					<th scope="col" class="table-header-cell">
 						Group
 					</th>
-					<th class="table-header-cell">
+					<th scope="col" class="table-header-cell">
 						Version
 					</th>
-					<th class="table-header-cell">
+					<th scope="col" class="table-header-cell">
 						Scope
 					</th>
 				{:else}
-					<th class="table-header-cell">
+					<th scope="col" class="table-header-cell">
 						Replicas
 					</th>
-					<th class="table-header-cell">
+					<th scope="col" class="table-header-cell">
 						Last Reconciliation
 					</th>
 				{/if}
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Actions
 				</th>
 			</tr>

@@ -68,13 +68,7 @@
       await client.addGenerator(generatorSpec);
 
       submitStatus = "success";
-
-      // Wait a bit to show success message, then close and refresh
-      setTimeout(() => {
-        onGeneratorAdded?.();
-        resetForm();
-        onClose();
-      }, 1500);
+      // The timeout is now handled by the $effect below
     } catch (error) {
       console.error("Failed to add generator:", error);
       if (error instanceof SyntaxError) {
@@ -85,6 +79,19 @@
       submitStatus = "error";
     }
   }
+
+  // Effect to handle auto-close after success with proper cleanup
+  $effect(() => {
+    if (submitStatus === 'success') {
+      const timeoutId = setTimeout(() => {
+        onGeneratorAdded?.();
+        resetForm();
+        onClose();
+      }, 1500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  });
 
   function handleClose() {
     resetForm();

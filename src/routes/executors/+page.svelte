@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import ExecutorTable from '$lib/components/ExecutorTable.svelte';
@@ -61,29 +60,31 @@
 	// Filter state
 	let showUnregistered = $state(false);
 
-	onMount(async () => {
-		colonyClient = await ClientFactory.getColonyClient();
-		await loadExecutorData();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			await loadExecutorData();
 
-		// Check if there's an executor ID in the URL
-		const urlExecutorId = $page.url.searchParams.get('id');
-		if (urlExecutorId) {
-			// Try to find the executor in the loaded list
-			const executor = displayExecutors.find(e => e.executorid === urlExecutorId);
-			if (executor) {
-				// Store colony name
-				const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
-				if (apiExecutor) {
-					(executor as any).colonyname = apiExecutor.colonyname;
+			// Check if there's an executor ID in the URL
+			const urlExecutorId = $page.url.searchParams.get('id');
+			if (urlExecutorId) {
+				// Try to find the executor in the loaded list
+				const executor = displayExecutors.find(e => e.executorid === urlExecutorId);
+				if (executor) {
+					// Store colony name
+					const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
+					if (apiExecutor) {
+						executor.colonyname = apiExecutor.colonyname;
+					}
+					selectedExecutorForDetails = executor;
+					showExecutorDetails = true;
+				} else {
+					// Executor not in list, create a minimal object
+					selectedExecutorForDetails = { executorid: urlExecutorId } as Executor;
+					showExecutorDetails = true;
 				}
-				selectedExecutorForDetails = executor;
-				showExecutorDetails = true;
-			} else {
-				// Executor not in list, create a minimal object
-				selectedExecutorForDetails = { executorid: urlExecutorId } as Executor;
-				showExecutorDetails = true;
 			}
-		}
+		})();
 	});
 
 	async function loadExecutorData() {
@@ -122,7 +123,7 @@
 				executorid: executor.executorid,
 				executorname: executor.executorname || 'Unnamed Executor',
 				executortype: executor.executortype || 'Unknown',
-				colonyid: executor.colonyname,
+				colonyname: executor.colonyname,
 				state: executor.state, // Use the correct state values: 0=PENDING, 1=APPROVED, 2=REJECTED
 				lastheardfromtime: executor.lastheardfromtime,
 				commissiontime: executor.commissiontime,
@@ -158,7 +159,7 @@
 		// Store the colony name in the executor object for the modal
 		const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
 		if (apiExecutor) {
-			(executor as any).colonyname = apiExecutor.colonyname;
+			executor.colonyname = apiExecutor.colonyname;
 		}
 		selectedExecutorForDetails = executor;
 		showExecutorDetails = true;

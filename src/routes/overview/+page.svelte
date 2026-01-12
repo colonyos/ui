@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import ColonyOverview from '$lib/components/ColonyOverview.svelte';
 	import type { ColonyOverviewData, ExecutorNode, ProcessInfo, ColonyStatistics } from '$lib/types/overview';
 	import { ProcessState } from '$lib/types/process';
@@ -185,7 +184,7 @@
 		}
 	}
 
-	onMount(() => {
+	$effect(() => {
 		loadColonyData();
 	});
 </script>

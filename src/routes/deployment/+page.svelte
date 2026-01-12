@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
 	// Placeholder for future component types
 	type ComponentType = 'server' | 'executor' | 'custom';
 

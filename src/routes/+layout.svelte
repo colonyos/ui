@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import '../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import ConnectionError from '$lib/components/ConnectionError.svelte';
@@ -27,9 +26,11 @@
 	}
 
 	// Initialize app state on mount
-	onMount(() => {
+	$effect(() => {
 		// Initialize theme
 		themeStore.init();
+
+		let cancelled = false;
 
 		// Subscribe to state changes and persist them
 		const unsubscribe = appState.subscribe((state) => {
@@ -38,14 +39,25 @@
 
 		// Load config and test connection
 		(async () => {
-			// Load config file first, then localStorage overrides
-			await appStateActions.loadFromConfig();
+			try {
+				// Load config file first, then localStorage overrides
+				await appStateActions.loadFromConfig();
 
-			// Test connection after configuration is loaded
-			await testConnection();
+				// Test connection after configuration is loaded (only if not cancelled)
+				if (!cancelled) {
+					await testConnection();
+				}
+			} catch (error) {
+				if (!cancelled) {
+					console.error('Initialization error:', error);
+				}
+			}
 		})();
 
-		return unsubscribe;
+		return () => {
+			cancelled = true;
+			unsubscribe();
+		};
 	});
 </script>
 

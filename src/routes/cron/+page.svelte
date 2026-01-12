@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import CronTable from '$lib/components/CronTable.svelte';
@@ -49,24 +48,26 @@
 	let selectedCronForDetails = $state<Cron | null>(null);
 	let showAddCronModal = $state(false);
 
-	onMount(async () => {
-		colonyClient = await ClientFactory.getColonyClient();
-		await loadCronData();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			await loadCronData();
 
-		// Check if there's a cron ID in the URL
-		const urlCronId = $page.url.searchParams.get('id');
-		if (urlCronId) {
-			// Try to find the cron in the loaded list
-			const cron = allCrons.find(c => c.cronid === urlCronId);
-			if (cron) {
-				selectedCronForDetails = cron as Cron;
-				showCronDetails = true;
-			} else {
-				// Cron not in list, create a minimal cron object to trigger modal load
-				selectedCronForDetails = { cronid: urlCronId } as Cron;
-				showCronDetails = true;
+			// Check if there's a cron ID in the URL
+			const urlCronId = $page.url.searchParams.get('id');
+			if (urlCronId) {
+				// Try to find the cron in the loaded list
+				const cron = allCrons.find(c => c.cronid === urlCronId);
+				if (cron) {
+					selectedCronForDetails = cron as Cron;
+					showCronDetails = true;
+				} else {
+					// Cron not in list, create a minimal cron object to trigger modal load
+					selectedCronForDetails = { cronid: urlCronId } as Cron;
+					showCronDetails = true;
+				}
 			}
-		}
+		})();
 	});
 
 	async function loadCronData() {
@@ -145,9 +146,13 @@
 		}
 
 		try {
-			console.log('Running cron from table:', cronId);
+			if (import.meta.env.DEV) {
+				console.log('Running cron from table:', cronId);
+			}
 			const response = await colonyClient.runCron(cronId);
-			console.log('Cron triggered successfully:', response);
+			if (import.meta.env.DEV) {
+				console.log('Cron triggered successfully:', response);
+			}
 		} catch (error) {
 			console.error('Failed to run cron:', error);
 		}

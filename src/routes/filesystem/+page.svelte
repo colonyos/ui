@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import ClientFactory from '$lib/utils/clientFactory';
@@ -13,23 +12,25 @@
 	let selectedLabel = $state<{ name: string; colonyname: string } | null>(null);
 	let selectedFile = $state<any | null>(null);
 
-	onMount(async () => {
-		// Check if URL contains a label query parameter
-		const labelParam = $page.url.searchParams.get('label');
-		if (labelParam) {
-			// URL is /filesystem?label=<label>, extract label
-			// Load labels first to find the colony name
-			await loadFileLabels();
-			const label = labels.find(l => l.name === labelParam);
-			if (label) {
-				await loadFilesInternal(label.name, label.colonyname);
+	$effect(() => {
+		(async () => {
+			// Check if URL contains a label query parameter
+			const labelParam = $page.url.searchParams.get('label');
+			if (labelParam) {
+				// URL is /filesystem?label=<label>, extract label
+				// Load labels first to find the colony name
+				await loadFileLabels();
+				const label = labels.find(l => l.name === labelParam);
+				if (label) {
+					await loadFilesInternal(label.name, label.colonyname);
+				} else {
+					// Label not found, go back to filesystem root
+					goto('/filesystem', { replaceState: true });
+				}
 			} else {
-				// Label not found, go back to filesystem root
-				goto('/filesystem', { replaceState: true });
+				await loadFileLabels();
 			}
-		} else {
-			await loadFileLabels();
-		}
+		})();
 	});
 
 	async function loadFileLabels() {
