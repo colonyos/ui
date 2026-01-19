@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import GeneratorTable from '$lib/components/GeneratorTable.svelte';
@@ -8,11 +7,7 @@
 	import type { Generator } from '$lib/types/generator';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	interface ApiGenerator {
 		generatorid: string;
@@ -31,9 +26,7 @@
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allGenerators = $state<ApiGenerator[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -41,30 +34,38 @@
 	let selectedGeneratorForDetails = $state<Generator | null>(null);
 	let showAddGeneratorModal = $state(false);
 
-	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
-		colonyClient = await ClientFactory.getColonyClient();
-		await loadGeneratorData();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			await loadGeneratorData();
 
-		// Check if there's a generator ID in the URL
-		const urlGeneratorId = $page.url.searchParams.get('id');
-		if (urlGeneratorId) {
-			// Try to find the generator in the loaded list
-			const generator = displayGenerators.find(g => g.generatorid === urlGeneratorId);
-			if (generator) {
-				selectedGeneratorForDetails = generator;
-				showGeneratorDetails = true;
-			} else {
-				// Generator not in list, create a minimal object
-				selectedGeneratorForDetails = { generatorid: urlGeneratorId } as Generator;
-				showGeneratorDetails = true;
+			// Check if there's a generator ID in the URL
+			const urlGeneratorId = $page.url.searchParams.get('id');
+			if (urlGeneratorId) {
+				// Try to find the generator in the loaded list
+				const generator = displayGenerators.find(g => g.generatorid === urlGeneratorId);
+				if (generator) {
+					selectedGeneratorForDetails = generator;
+					showGeneratorDetails = true;
+				} else {
+					// Generator not in list, create a minimal object
+					selectedGeneratorForDetails = { generatorid: urlGeneratorId } as Generator;
+					showGeneratorDetails = true;
+				}
 			}
-		}
+		})();
 	});
 
 	async function loadGeneratorData() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -74,27 +75,9 @@
 		allGenerators = [];
 
 		try {
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-				
-				const generatorPromises = colonies.map(async (colony) => {
-					try {
-						const generators = await colonyClient!.getGenerators(colony.name, 100);
-						return Array.isArray(generators) ? generators : [];
-					} catch (error) {
-						console.warn(`Failed to get generators for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const generatorArrays = await Promise.all(generatorPromises);
-				allGenerators = generatorArrays.flat();
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
-			}
+			const generators = await colonyClient.getGenerators(colonyName, 100);
+			allGenerators = Array.isArray(generators) ? generators : [];
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load generator data:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
@@ -102,24 +85,7 @@
 		}
 	}
 
-	function convertToLegacyFormat(apiGenerators: ApiGenerator[]): Generator[] {
-		return apiGenerators.map(generator => ({
-			generatorid: generator.generatorid,
-			initiatorid: generator.initiatorid,
-			initiatorname: generator.initiatorname,
-			colonyname: generator.colonyname,
-			name: generator.name,
-			workflowspec: generator.workflowspec,
-			trigger: generator.trigger,
-			timeout: generator.timeout,
-			firstpack: generator.firstpack,
-			lastrun: generator.lastrun,
-			queuesize: generator.queuesize,
-			checkerperiod: generator.checkerperiod
-		}));
-	}
-
-	let displayGenerators = $derived(convertToLegacyFormat(allGenerators));
+	let displayGenerators = $derived(allGenerators as Generator[]);
 
 	function handleGeneratorClick(generator: Generator) {
 		selectedGeneratorForDetails = generator;
@@ -154,46 +120,51 @@
 	</div>
 
 	<!-- Loading/Error States -->
-	{#if loadingStatus === 'loading'}
-		<div class="flex items-center justify-center py-4 text-gray-500">
-			<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-			Loading generator data...
-		</div>
-	{:else if loadingStatus === 'error'}
-		<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4">
+	<!-- Error State -->
+	{#if loadingStatus === 'error'}
+		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4">
 			<strong>Error:</strong> {loadingError}
 		</div>
-	{:else}
-		<div class="flex justify-end gap-2 mb-4">
-			<!-- Add Generator Button -->
-			<button
-				onclick={openAddGeneratorModal}
-				disabled={loadingStatus === 'loading'}
-				aria-label="Add Generator"
-				class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
-				title="Add Generator"
-			>
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-				</svg>
-			</button>
+	{/if}
 
-			<!-- Refresh Button -->
-			<button
-				onclick={loadGeneratorData}
-				disabled={loadingStatus === 'loading'}
-				aria-label="Refresh"
-				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
-				title="Refresh"
-			>
+	<!-- Controls (always visible) -->
+	<div class="flex justify-end gap-2 mb-4">
+		<!-- Add Generator Button -->
+		<button
+			onclick={openAddGeneratorModal}
+			disabled={loadingStatus === 'loading'}
+			aria-label="Add Generator"
+			class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded transition-colors"
+			title="Add Generator"
+		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+			</svg>
+		</button>
+
+		<!-- Refresh Button -->
+		<button
+			onclick={loadGeneratorData}
+			disabled={loadingStatus === 'loading'}
+			aria-label="Refresh"
+			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+			title="Refresh"
+		>
+			{#if loadingStatus === 'loading'}
+				<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			{:else}
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 				</svg>
-			</button>
-		</div>
+			{/if}
+		</button>
+	</div>
 
-		<GeneratorTable generators={displayGenerators} onGeneratorClick={handleGeneratorClick} />
-	{/if}
+	<!-- Table (always visible) -->
+	<GeneratorTable generators={displayGenerators} onGeneratorClick={handleGeneratorClick} loading={loadingStatus === 'loading'} />
 </div>
 
 <!-- Generator Details Modal -->

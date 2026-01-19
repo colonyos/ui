@@ -4,19 +4,20 @@
 
   interface Props {
     functions: Function[];
+    loading?: boolean;
   }
 
-  let { functions }: Props = $props();
+  let { functions, loading = false }: Props = $props();
 </script>
 
 <div class="table-container">
   <table class="table-base">
     <thead class="table-header">
       <tr>
-        <th class="table-header-cell"> Function </th>
-        <th class="table-header-cell text-center"> Executions </th>
-        <th class="table-header-cell"> Wait Time </th>
-        <th class="table-header-cell"> Execution Time </th>
+        <th scope="col" class="table-header-cell"> Function </th>
+        <th scope="col" class="table-header-cell text-center"> Executions </th>
+        <th scope="col" class="table-header-cell"> Wait Time </th>
+        <th scope="col" class="table-header-cell"> Execution Time </th>
       </tr>
     </thead>
     <tbody class="table-body">
@@ -80,8 +81,12 @@
   </table>
 
   {#if functions.length === 0}
-    <div class="text-center py-8 text-gray-500 dark:text-slate-300">
-      No functions found
+    <div class="table-empty">
+      {#if loading}
+        Loading functions...
+      {:else}
+        No functions found
+      {/if}
     </div>
   {/if}
 </div>

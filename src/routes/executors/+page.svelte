@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import ExecutorTable from '$lib/components/ExecutorTable.svelte';
@@ -8,11 +7,7 @@
 	import type { Executor } from '$lib/types/executor';
 	import { ExecutorState } from '$lib/types/executor';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	interface ApiExecutor {
 		executorid: string;
@@ -55,9 +50,7 @@
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allExecutors = $state<ApiExecutor[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -67,35 +60,43 @@
 	// Filter state
 	let showUnregistered = $state(false);
 
-	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
-		colonyClient = await ClientFactory.getColonyClient();
-		await loadExecutorData();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			await loadExecutorData();
 
-		// Check if there's an executor ID in the URL
-		const urlExecutorId = $page.url.searchParams.get('id');
-		if (urlExecutorId) {
-			// Try to find the executor in the loaded list
-			const executor = displayExecutors.find(e => e.executorid === urlExecutorId);
-			if (executor) {
-				// Store colony name
-				const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
-				if (apiExecutor) {
-					(executor as any).colonyname = apiExecutor.colonyname;
+			// Check if there's an executor ID in the URL
+			const urlExecutorId = $page.url.searchParams.get('id');
+			if (urlExecutorId) {
+				// Try to find the executor in the loaded list
+				const executor = displayExecutors.find(e => e.executorid === urlExecutorId);
+				if (executor) {
+					// Store colony name
+					const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
+					if (apiExecutor) {
+						executor.colonyname = apiExecutor.colonyname;
+					}
+					selectedExecutorForDetails = executor;
+					showExecutorDetails = true;
+				} else {
+					// Executor not in list, create a minimal object
+					selectedExecutorForDetails = { executorid: urlExecutorId } as Executor;
+					showExecutorDetails = true;
 				}
-				selectedExecutorForDetails = executor;
-				showExecutorDetails = true;
-			} else {
-				// Executor not in list, create a minimal object
-				selectedExecutorForDetails = { executorid: urlExecutorId } as Executor;
-				showExecutorDetails = true;
 			}
-		}
+		})();
 	});
 
 	async function loadExecutorData() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -105,29 +106,9 @@
 		allExecutors = [];
 
 		try {
-			// First get colonies
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-				
-				// Then get executors for each colony
-				const executorPromises = colonies.map(async (colony) => {
-					try {
-						const executors = await colonyClient!.getExecutors(colony.name);
-						return Array.isArray(executors) ? executors : [];
-					} catch (error) {
-						console.warn(`Failed to get executors for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const executorArrays = await Promise.all(executorPromises);
-				allExecutors = executorArrays.flat();
-				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
-			}
+			const executors = await colonyClient.getExecutors(colonyName);
+			allExecutors = Array.isArray(executors) ? executors : [];
+			loadingStatus = 'success';
 		} catch (error) {
 			console.error('Failed to load executor data:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
@@ -138,14 +119,11 @@
 	// Convert API executors to the format expected by ExecutorTable
 	function convertToLegacyFormat(apiExecutors: ApiExecutor[]) {
 		return apiExecutors.map(executor => {
-			// Find the colony ID for this executor
-			const colony = colonies.find(c => c.name === executor.colonyname);
-			
 			return {
 				executorid: executor.executorid,
 				executorname: executor.executorname || 'Unnamed Executor',
 				executortype: executor.executortype || 'Unknown',
-				colonyid: colony?.colonyid || executor.colonyname,
+				colonyname: executor.colonyname,
 				state: executor.state, // Use the correct state values: 0=PENDING, 1=APPROVED, 2=REJECTED
 				lastheardfromtime: executor.lastheardfromtime,
 				commissiontime: executor.commissiontime,
@@ -181,7 +159,7 @@
 		// Store the colony name in the executor object for the modal
 		const apiExecutor = allExecutors.find(e => e.executorid === executor.executorid);
 		if (apiExecutor) {
-			(executor as any).colonyname = apiExecutor.colonyname;
+			executor.colonyname = apiExecutor.colonyname;
 		}
 		selectedExecutorForDetails = executor;
 		showExecutorDetails = true;
@@ -211,46 +189,51 @@
 		<h1 class="page-title">Executors</h1>
 	</div>
 
-	<!-- Loading/Error States -->
-	{#if loadingStatus === 'loading'}
-		<div class="flex items-center justify-center py-4 text-gray-500">
-			<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-			Loading executor data...
-		</div>
-	{:else if loadingStatus === 'error'}
-		<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4">
+	<!-- Error State -->
+	{#if loadingStatus === 'error'}
+		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4">
 			<strong>Error:</strong> {loadingError}
 		</div>
-	{:else}
-		<div class="flex justify-between items-center mb-4">
-			<!-- Filter Options -->
-			<div class="flex items-center gap-2">
-				<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
-					<input
-						type="checkbox"
-						bind:checked={showUnregistered}
-						class="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-slate-700"
-					/>
-					<span>Show unregistered executors</span>
-				</label>
-			</div>
+	{/if}
 
-			<!-- Refresh Button -->
-			<button
-				onclick={loadExecutorData}
-				disabled={loadingStatus === 'loading'}
-				aria-label="Refresh"
-				class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
-				title="Refresh"
-			>
+	<!-- Controls (always visible) -->
+	<div class="flex justify-between items-center mb-4">
+		<!-- Filter Options -->
+		<div class="flex items-center gap-2">
+			<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+				<input
+					type="checkbox"
+					bind:checked={showUnregistered}
+					disabled={loadingStatus === 'loading'}
+					class="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-slate-700"
+				/>
+				<span>Show unregistered executors</span>
+			</label>
+		</div>
+
+		<!-- Refresh Button -->
+		<button
+			onclick={loadExecutorData}
+			disabled={loadingStatus === 'loading'}
+			aria-label="Refresh"
+			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+			title="Refresh"
+		>
+			{#if loadingStatus === 'loading'}
+				<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			{:else}
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 				</svg>
-			</button>
-		</div>
+			{/if}
+		</button>
+	</div>
 
-		<ExecutorTable executors={filteredExecutors} onExecutorClick={handleExecutorClick} />
-	{/if}
+	<!-- Table (always visible) -->
+	<ExecutorTable executors={filteredExecutors} onExecutorClick={handleExecutorClick} loading={loadingStatus === 'loading'} />
 </div>
 
 <!-- Executor Details Modal -->

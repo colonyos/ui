@@ -69,13 +69,7 @@
       await client.submitProcess(processSpec);
 
       submitStatus = "success";
-
-      // Wait a bit to show success message, then close and refresh
-      setTimeout(() => {
-        onProcessSubmitted?.();
-        resetForm();
-        onClose();
-      }, 1500);
+      // The timeout is now handled by the $effect below
     } catch (error) {
       console.error("Failed to submit process:", error);
       if (error instanceof SyntaxError) {
@@ -86,6 +80,19 @@
       submitStatus = "error";
     }
   }
+
+  // Effect to handle auto-close after success with proper cleanup
+  $effect(() => {
+    if (submitStatus === 'success') {
+      const timeoutId = setTimeout(() => {
+        onProcessSubmitted?.();
+        resetForm();
+        onClose();
+      }, 1500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  });
 </script>
 
 {#if show}
@@ -93,6 +100,8 @@
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     role="dialog"
     aria-modal="true"
+    aria-labelledby="submit-process-title"
+    aria-describedby="submit-process-description"
     tabindex="-1"
     onclick={handleBackdropClick}
     onkeydown={(e) => e.key === 'Escape' && onClose()}
@@ -104,10 +113,10 @@
       <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
         <div class="flex justify-between items-start">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 id="submit-process-title" class="text-lg font-semibold text-gray-900 dark:text-white">
               Submit Process
             </h3>
-            <p class="text-sm text-gray-600 dark:text-slate-300 mt-1">
+            <p id="submit-process-description" class="text-sm text-gray-600 dark:text-slate-300 mt-1">
               Upload a JSON file or paste the process specification
             </p>
           </div>

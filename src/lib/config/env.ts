@@ -10,9 +10,6 @@ export const envConfig = {
 	executorPrvKey: import.meta.env.VITE_COLONIES_EXECUTOR_PRVKEY || '',
 	serverId: import.meta.env.VITE_COLONIES_SERVER_ID || '',
 	serverPrvKey: import.meta.env.VITE_COLONIES_SERVER_PRVKEY || '',
-	host: import.meta.env.VITE_COLONIES_SERVER_HOST || '',
-	port: import.meta.env.VITE_COLONIES_SERVER_PORT || '',
-	tls: import.meta.env.VITE_COLONIES_SERVER_TLS || 'false',
 	
 	// User information
 	username: import.meta.env.VITE_COLONIES_USERNAME || '',

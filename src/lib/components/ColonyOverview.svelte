@@ -67,18 +67,17 @@
 	}
 </script>
 
-{#if loading}
-	<div class="flex items-center justify-center p-12">
-		<div class="text-gray-500 dark:text-gray-400">Loading colony overview...</div>
-	</div>
-{:else if !data}
+{#if !data && !loading}
 	<div class="flex items-center justify-center p-12">
 		<div class="text-gray-500 dark:text-gray-400">No colony data available</div>
 	</div>
 {:else}
+	<!-- Show skeleton/structure even when loading or when we have data -->
 	<!-- Colony Summary -->
 	<div class="bg-white dark:bg-slate-700 rounded-lg shadow p-6 mb-6">
-		<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{data.colonyName}</h2>
+		<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+			{data?.colonyName || (loading ? 'Loading...' : 'No Colony')}
+		</h2>
 
 		<!-- Executor Statistics -->
 		<div class="mb-6">
@@ -86,12 +85,16 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-4">
 					<div class="text-sm text-gray-600 dark:text-gray-400">Total Executors</div>
-					<div class="text-3xl font-bold text-gray-900 dark:text-white">{data.totalExecutors}</div>
+					<div class="text-3xl font-bold text-gray-900 dark:text-white">
+						{#if loading && !data}—{:else}{data?.totalExecutors ?? 0}{/if}
+					</div>
 				</div>
 
 				<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
 					<div class="text-sm text-blue-600 dark:text-blue-400">Busy Executors</div>
-					<div class="text-3xl font-bold text-blue-900 dark:text-blue-100">{data.activeExecutors}</div>
+					<div class="text-3xl font-bold text-blue-900 dark:text-blue-100">
+						{#if loading && !data}—{:else}{data?.activeExecutors ?? 0}{/if}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -102,27 +105,37 @@
 			<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
 				<div class="bg-gray-50 dark:bg-slate-600 rounded-lg p-3">
 					<div class="text-xs text-gray-600 dark:text-gray-400">Total</div>
-					<div class="text-2xl font-bold text-gray-900 dark:text-white">{data.statistics.totalProcesses}</div>
+					<div class="text-2xl font-bold text-gray-900 dark:text-white">
+						{#if loading && !data}—{:else}{data?.statistics.totalProcesses ?? 0}{/if}
+					</div>
 				</div>
 
 				<div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
 					<div class="text-xs text-yellow-600 dark:text-yellow-400">Waiting</div>
-					<div class="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{data.statistics.waitingProcesses}</div>
+					<div class="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+						{#if loading && !data}—{:else}{data?.statistics.waitingProcesses ?? 0}{/if}
+					</div>
 				</div>
 
 				<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
 					<div class="text-xs text-blue-600 dark:text-blue-400">Running</div>
-					<div class="text-2xl font-bold text-blue-900 dark:text-blue-100">{data.statistics.runningProcesses}</div>
+					<div class="text-2xl font-bold text-blue-900 dark:text-blue-100">
+						{#if loading && !data}—{:else}{data?.statistics.runningProcesses ?? 0}{/if}
+					</div>
 				</div>
 
 				<div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
 					<div class="text-xs text-green-600 dark:text-green-400">Success</div>
-					<div class="text-2xl font-bold text-green-900 dark:text-green-100">{data.statistics.successfulProcesses}</div>
+					<div class="text-2xl font-bold text-green-900 dark:text-green-100">
+						{#if loading && !data}—{:else}{data?.statistics.successfulProcesses ?? 0}{/if}
+					</div>
 				</div>
 
 				<div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
 					<div class="text-xs text-red-600 dark:text-red-400">Failed</div>
-					<div class="text-2xl font-bold text-red-900 dark:text-red-100">{data.statistics.failedProcesses}</div>
+					<div class="text-2xl font-bold text-red-900 dark:text-red-100">
+						{#if loading && !data}—{:else}{data?.statistics.failedProcesses ?? 0}{/if}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -135,7 +148,7 @@
 		</div>
 
 		<div class="divide-y divide-gray-200 dark:divide-slate-600">
-			{#each displayedExecutors as executor}
+			{#each (displayedExecutors || []) as executor}
 				<div class="p-4 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
 					<div class="flex items-start justify-between">
 						<div class="flex items-start gap-3 flex-1">
@@ -191,75 +204,80 @@
 				</div>
 			{/each}
 
-			{#if displayedExecutors.length === 0}
+			{#if (displayedExecutors || []).length === 0}
 				<div class="p-8 text-center text-gray-500 dark:text-gray-400">
-					No executors found in this colony
+					{loading ? 'Loading executors...' : 'No executors found in this colony'}
 				</div>
 			{/if}
 		</div>
 	</div>
 
-	<!-- Recent Processes -->
-	{#if data.processes && data.processes.length > 0}
-		<div class="bg-white dark:bg-slate-700 rounded-lg shadow mt-6">
-			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Processes</h3>
-			</div>
-
-			<div class="overflow-x-auto">
-				<table class="w-full">
-					<thead class="bg-gray-50 dark:bg-slate-600">
-						<tr>
-							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
-								Function
-							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
-								State
-							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
-								Executor
-							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
-								Submitted
-							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
-								Process ID
-							</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-gray-200 dark:divide-slate-600">
-						{#each recentProcesses as process}
-							<tr class="hover:bg-gray-50 dark:hover:bg-slate-600">
-								<td class="px-6 py-4 whitespace-nowrap">
-									<div class="text-sm font-medium text-gray-900 dark:text-white">
-										{process.functionName}
-									</div>
-								</td>
-								<td class="px-6 py-4 whitespace-nowrap">
-									<span class="px-2 py-1 text-xs font-medium rounded {getProcessStateColor(process.state)}">
-										{getProcessStateLabel(process.state)}
-									</span>
-								</td>
-								<td class="px-6 py-4 whitespace-nowrap">
-									<div class="text-sm text-gray-900 dark:text-white">
-										{process.executorName || 'Not assigned'}
-									</div>
-								</td>
-								<td class="px-6 py-4 whitespace-nowrap">
-									<div class="text-sm text-gray-500 dark:text-gray-400">
-										{formatTime(process.submissionTime)}
-									</div>
-								</td>
-								<td class="px-6 py-4">
-									<div class="text-xs font-mono text-gray-500 dark:text-gray-400 truncate max-w-xs">
-										{process.id}
-									</div>
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
+	<!-- Recent Processes (always show structure) -->
+	<div class="bg-white dark:bg-slate-700 rounded-lg shadow mt-6">
+		<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
+			<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Processes</h3>
 		</div>
-	{/if}
+
+		<div class="overflow-x-auto">
+			<table class="w-full">
+				<thead class="bg-gray-50 dark:bg-slate-600">
+					<tr>
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+							Function
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+							State
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+							Executor
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+							Submitted
+						</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-200 uppercase tracking-wider">
+							Process ID
+						</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-gray-200 dark:divide-slate-600">
+					{#each (recentProcesses || []) as process}
+						<tr class="hover:bg-gray-50 dark:hover:bg-slate-600">
+							<td class="px-6 py-4 whitespace-nowrap">
+								<div class="text-sm font-medium text-gray-900 dark:text-white">
+									{process.functionName}
+								</div>
+							</td>
+							<td class="px-6 py-4 whitespace-nowrap">
+								<span class="px-2 py-1 text-xs font-medium rounded {getProcessStateColor(process.state)}">
+									{getProcessStateLabel(process.state)}
+								</span>
+							</td>
+							<td class="px-6 py-4 whitespace-nowrap">
+								<div class="text-sm text-gray-900 dark:text-white">
+									{process.executorName || 'Not assigned'}
+								</div>
+							</td>
+							<td class="px-6 py-4 whitespace-nowrap">
+								<div class="text-sm text-gray-500 dark:text-gray-400">
+									{formatTime(process.submissionTime)}
+								</div>
+							</td>
+							<td class="px-6 py-4">
+								<div class="text-xs font-mono text-gray-500 dark:text-gray-400 truncate max-w-xs">
+									{process.id}
+								</div>
+							</td>
+						</tr>
+					{/each}
+					{#if (recentProcesses || []).length === 0}
+						<tr>
+							<td colspan="5" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+								{loading ? 'Loading processes...' : 'No recent processes found'}
+							</td>
+						</tr>
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
 {/if}

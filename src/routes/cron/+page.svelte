@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import CronTable from '$lib/components/CronTable.svelte';
@@ -8,11 +7,7 @@
 	import type { ColonyClient } from '$lib/api/colony';
 	import type { Cron } from '$lib/types/cron';
 	import ClientFactory from '$lib/utils/clientFactory';
-
-	interface Colony {
-		colonyid: string;
-		name: string;
-	}
+	import { envConfig } from '$lib/config/env';
 
 	interface ApiCron {
 		cronid: string;
@@ -45,9 +40,7 @@
 
 	let loadingStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let loadingError = $state('');
-	let colonies = $state<Colony[]>([]);
 	let allCrons = $state<ApiCron[]>([]);
-	let serverClient = $state<ColonyClient | null>(null);
 	let colonyClient = $state<ColonyClient | null>(null);
 
 	// Modal state
@@ -55,30 +48,38 @@
 	let selectedCronForDetails = $state<Cron | null>(null);
 	let showAddCronModal = $state(false);
 
-	onMount(async () => {
-		serverClient = await ClientFactory.getServerClient();
-		colonyClient = await ClientFactory.getColonyClient();
-		await loadCronData();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			await loadCronData();
 
-		// Check if there's a cron ID in the URL
-		const urlCronId = $page.url.searchParams.get('id');
-		if (urlCronId) {
-			// Try to find the cron in the loaded list
-			const cron = allCrons.find(c => c.cronid === urlCronId);
-			if (cron) {
-				selectedCronForDetails = cron as Cron;
-				showCronDetails = true;
-			} else {
-				// Cron not in list, create a minimal cron object to trigger modal load
-				selectedCronForDetails = { cronid: urlCronId } as Cron;
-				showCronDetails = true;
+			// Check if there's a cron ID in the URL
+			const urlCronId = $page.url.searchParams.get('id');
+			if (urlCronId) {
+				// Try to find the cron in the loaded list
+				const cron = allCrons.find(c => c.cronid === urlCronId);
+				if (cron) {
+					selectedCronForDetails = cron as Cron;
+					showCronDetails = true;
+				} else {
+					// Cron not in list, create a minimal cron object to trigger modal load
+					selectedCronForDetails = { cronid: urlCronId } as Cron;
+					showCronDetails = true;
+				}
 			}
-		}
+		})();
 	});
 
 	async function loadCronData() {
-		if (!serverClient || !colonyClient) {
-			loadingError = 'Clients not initialized. Check configuration.';
+		if (!colonyClient) {
+			loadingError = 'Colony client not initialized. Check configuration.';
+			loadingStatus = 'error';
+			return;
+		}
+
+		const colonyName = envConfig.colonyName;
+		if (!colonyName) {
+			loadingError = 'Colony name not configured. Check environment variables.';
 			loadingStatus = 'error';
 			return;
 		}
@@ -88,43 +89,27 @@
 		allCrons = [];
 
 		try {
-			const coloniesResult = await serverClient.getColonies();
-			if (Array.isArray(coloniesResult)) {
-				colonies = coloniesResult;
-				
-				const cronPromises = colonies.map(async (colony) => {
-					try {
-						const crons = await colonyClient!.getCrons(colony.name, 100);
-						return Array.isArray(crons) ? crons : [];
-					} catch (error) {
-						// Silently handle "crons is nil" error - this just means no crons exist
-						const errorMessage = error instanceof Error ? error.message : String(error);
-						if (errorMessage.includes('crons is nil')) {
-							return [];
-						}
-						// Log other errors as warnings
-						console.warn(`Failed to get crons for ${colony.name}:`, error);
-						return [];
-					}
-				});
-
-				const cronArrays = await Promise.all(cronPromises);
-				allCrons = cronArrays.flat();
+			try {
+				const crons = await colonyClient.getCrons(colonyName, 100);
+				allCrons = Array.isArray(crons) ? crons : [];
 				loadingStatus = 'success';
-			} else {
-				loadingError = 'Failed to load colonies';
-				loadingStatus = 'error';
+			} catch (error) {
+				// Silently handle "crons is nil" error - this just means no crons exist
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				if (errorMessage.includes('crons is nil')) {
+					allCrons = [];
+					loadingStatus = 'success';
+				} else {
+					// Log other errors
+					console.error(`Failed to get crons for ${colonyName}:`, error);
+					throw error;
+				}
 			}
 		} catch (error) {
 			console.error('Failed to load cron data:', error);
 			loadingError = error instanceof Error ? error.message : String(error);
 			loadingStatus = 'error';
 		}
-	}
-
-	function convertToLegacyFormat(apiCrons: ApiCron[]): Cron[] {
-		// API already returns the correct format, just cast to Cron type
-		return apiCrons as Cron[];
 	}
 
 	function handleCronClick(cron: Cron) {
@@ -161,15 +146,19 @@
 		}
 
 		try {
-			console.log('Running cron from table:', cronId);
+			if (import.meta.env.DEV) {
+				console.log('Running cron from table:', cronId);
+			}
 			const response = await colonyClient.runCron(cronId);
-			console.log('Cron triggered successfully:', response);
+			if (import.meta.env.DEV) {
+				console.log('Cron triggered successfully:', response);
+			}
 		} catch (error) {
 			console.error('Failed to run cron:', error);
 		}
 	}
 
-	let displayCrons = $derived(convertToLegacyFormat(allCrons));
+	let displayCrons = $derived(allCrons as Cron[]);
 </script>
 
 <div class="space-y-6">
@@ -178,17 +167,15 @@
 	</div>
 
 	<!-- Loading/Error States -->
-	{#if loadingStatus === 'loading'}
-		<div class="flex items-center justify-center py-4 text-gray-500">
-			<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-			Loading cron data...
-		</div>
-	{:else if loadingStatus === 'error'}
-		<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4">
+	<!-- Error State -->
+	{#if loadingStatus === 'error'}
+		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4">
 			<strong>Error:</strong> {loadingError}
 		</div>
-	{:else}
-		<div class="flex justify-end gap-2 mb-4">
+	{/if}
+
+	<!-- Controls (always visible) -->
+	<div class="flex justify-end gap-2 mb-4">
 		<!-- Add Cron Button -->
 		<button
 			onclick={openAddCronModal}
@@ -210,14 +197,21 @@
 			class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 			title="Refresh"
 		>
-			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-			</svg>
+			{#if loadingStatus === 'loading'}
+				<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			{:else}
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+				</svg>
+			{/if}
 		</button>
 	</div>
 
-	<CronTable crons={displayCrons} onCronClick={handleCronClick} onRunCron={handleRunCron} />
-	{/if}
+	<!-- Table (always visible) -->
+	<CronTable crons={displayCrons} onCronClick={handleCronClick} onRunCron={handleRunCron} loading={loadingStatus === 'loading'} />
 </div>
 
 <!-- Cron Details Modal -->

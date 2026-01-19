@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import WorkflowDAG from '$lib/components/WorkflowDAG.svelte';
@@ -8,6 +7,8 @@
 	import { envConfig } from '$lib/config/env';
 	import type { ColonyClient } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
+	import { getProcessStateLabel, getProcessStateColor } from '$lib/types/process';
+	import { formatDate } from '$lib/utils/dateUtils';
 
 	interface ProcessGraph {
 		processgraphid: string;
@@ -32,23 +33,25 @@
 	let colonyName = $state('');
 	let searchTerm = $state('');
 
-	onMount(async () => {
-		colonyClient = await ClientFactory.getColonyClient();
-		colonyName = $appState.colonyName || envConfig.colonyName || '';
-		await loadWorkflows();
+	$effect(() => {
+		(async () => {
+			colonyClient = await ClientFactory.getColonyClient();
+			colonyName = $appState.colonyName || envConfig.colonyName || '';
+			await loadWorkflows();
 
-		// Check if there's a workflow ID in the URL
-		const urlWorkflowId = $page.url.searchParams.get('id');
-		if (urlWorkflowId && colonyClient) {
-			// Try to find the workflow in the loaded list
-			const workflow = workflows.find(w => w.processgraphid === urlWorkflowId);
-			if (workflow) {
-				selectWorkflow(workflow);
-			} else {
-				// Workflow not in list, try to load it directly
-				await loadWorkflowById(urlWorkflowId);
+			// Check if there's a workflow ID in the URL
+			const urlWorkflowId = $page.url.searchParams.get('id');
+			if (urlWorkflowId && colonyClient) {
+				// Try to find the workflow in the loaded list
+				const workflow = workflows.find(w => w.processgraphid === urlWorkflowId);
+				if (workflow) {
+					selectWorkflow(workflow);
+				} else {
+					// Workflow not in list, try to load it directly
+					await loadWorkflowById(urlWorkflowId);
+				}
 			}
-		}
+		})();
 	});
 
 	async function loadWorkflowById(workflowId: string) {
@@ -110,15 +113,24 @@
 			console.log('=== Fetching workflows list (all states) ===');
 			console.log('Colony:', colonyName);
 
-			// Fetch workflows for all states: WAITING (0), RUNNING (1), SUCCESS (2), FAILED (3)
+			// Fetch workflows for all states in parallel: WAITING (0), RUNNING (1), SUCCESS (2), FAILED (3)
 			const states = [0, 1, 2, 3];
 			const allWorkflows: ProcessGraph[] = [];
 
-			for (const state of states) {
-				try {
-					const response = await colonyClient.getProcessGraphs(colonyName, 100, state);
-					console.log(`=== getProcessGraphs Response for state ${state} ===`);
-					console.log('Response:', JSON.stringify(response, null, 2));
+			const results = await Promise.allSettled(
+				states.map(state => colonyClient.getProcessGraphs(colonyName, 100, state))
+			);
+
+			// Process results from all parallel calls
+			results.forEach((result, index) => {
+				const state = states[index];
+
+				if (result.status === 'fulfilled') {
+					const response = result.value;
+					if (import.meta.env.DEV) {
+						console.log(`=== getProcessGraphs Response for state ${state} ===`);
+						console.log('Response:', JSON.stringify(response, null, 2));
+					}
 
 					if (response && response.processgraphs && Array.isArray(response.processgraphs)) {
 						allWorkflows.push(...response.processgraphs);
@@ -126,11 +138,11 @@
 						// Handle case where response is directly an array
 						allWorkflows.push(...response);
 					}
-				} catch (error) {
-					console.warn(`Failed to fetch workflows for state ${state}:`, error);
+				} else {
+					console.warn(`Failed to fetch workflows for state ${state}:`, result.reason);
 					// Continue with other states even if one fails
 				}
-			}
+			});
 
 			workflows = allWorkflows;
 			console.log(`Found ${workflows.length} total workflows across all states`);
@@ -158,18 +170,25 @@
 		goto(`/workflows?id=${workflow.processgraphid}`, { replaceState: true });
 
 		try {
-			console.log('=== Fetching workflow graph data ===');
-			console.log('Workflow ID:', workflow.processgraphid);
+			if (import.meta.env.DEV) {
+				console.log('=== Fetching workflow graph data ===');
+				console.log('Workflow ID:', workflow.processgraphid);
+			}
 
 			graphData = await colonyClient.getProcessGraph(workflow.processgraphid);
-			console.log('=== getProcessGraph Response ===');
-			console.log('Full response:', JSON.stringify(graphData, null, 2));
+
+			if (import.meta.env.DEV) {
+				console.log('=== getProcessGraph Response ===');
+				console.log('Full response:', JSON.stringify(graphData, null, 2));
+			}
 
 			if (graphData && graphData.nodes && graphData.edges) {
-				console.log('Graph structure loaded:', {
-					nodes: graphData.nodes.length,
-					edges: graphData.edges.length
-				});
+				if (import.meta.env.DEV) {
+					console.log('Graph structure loaded:', {
+						nodes: graphData.nodes.length,
+						edges: graphData.edges.length
+					});
+				}
 				graphLoadingStatus = 'success';
 			} else {
 				graphLoadingError = 'Invalid workflow graph data received from server';
@@ -234,36 +253,6 @@
 		)
 	);
 
-	function getWorkflowStateLabel(state: number): string {
-		switch (state) {
-			case 0: return 'Waiting';
-			case 1: return 'Running';
-			case 2: return 'Successful';
-			case 3: return 'Failed';
-			default: return 'Unknown';
-		}
-	}
-
-	function getWorkflowStateColor(state: number): string {
-		switch (state) {
-			case 0: return 'bg-yellow-100 text-yellow-800';
-			case 1: return 'bg-blue-100 text-blue-800';
-			case 2: return 'bg-green-100 text-green-800';
-			case 3: return 'bg-red-100 text-red-800';
-			default: return 'bg-gray-100 text-gray-800';
-		}
-	}
-
-	function formatTime(timeString: string): string {
-		if (!timeString || timeString === '0001-01-01T00:00:00Z' || timeString === '0001-01-01T00:53:28+00:53') {
-			return '-';
-		}
-		try {
-			return new Date(timeString).toLocaleString();
-		} catch {
-			return 'Invalid time';
-		}
-	}
 
 	function openSubmitModal() {
 		showSubmitModal = true;
@@ -311,9 +300,16 @@
 							class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
 							title="Refresh"
 						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-							</svg>
+							{#if loadingStatus === 'loading'}
+								<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+							{:else}
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+								</svg>
+							{/if}
 						</button>
 					</div>
 				</div>
@@ -342,20 +338,21 @@
 				</div>
 			</div>
 
-			{#if loadingStatus === 'loading'}
-				<div class="flex items-center justify-center py-12 text-gray-500 dark:text-slate-300">
-					<div class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-					Loading workflows...
-				</div>
-			{:else if loadingStatus === 'error'}
+			<!-- Error State -->
+			{#if loadingStatus === 'error'}
 				<div class="p-6">
-					<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+					<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded">
 						<strong>Error:</strong> {loadingError}
 					</div>
 				</div>
-			{:else if filteredWorkflows.length === 0}
+			{/if}
+
+			<!-- Table (always visible) -->
+			{#if filteredWorkflows.length === 0}
 				<div class="p-12 text-center text-gray-500 dark:text-slate-300">
-					{#if searchTerm}
+					{#if loadingStatus === 'loading'}
+						Loading workflows...
+					{:else if searchTerm}
 						No workflows match the filter "{searchTerm}"
 					{:else}
 						No workflows found. Create a workflow to see it here.
@@ -398,15 +395,15 @@
 										{workflow.initiatorname || '-'}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
-										<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {getWorkflowStateColor(workflow.state)}">
-											{getWorkflowStateLabel(workflow.state)}
+										<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {getProcessStateColor(workflow.state)}">
+											{getProcessStateLabel(workflow.state)}
 										</span>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
 										{workflow.processids?.length || 0}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
-										{formatTime(workflow.submissiontime)}
+										{formatDate(workflow.submissiontime)}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
 										<button

@@ -2,37 +2,6 @@
 
 The goal is to provide a web interface for a colony with some control of resources.
 
-When ready it's intended to run as a container that is managed by the colonies CLI. If you want to run it now you have to start a dev server locally.
-
-Every RPC call is logged in the browser console along with the time it took to get a response.
-
-```console
-🔐 RPC Request
-Key type: colony
-Body: {
-  "msgtype": "getexecutorsmsg",
-  "colonyname": "cop-pilot",
-  "count": 100
-}
-✅ RPC Response received in 857.00ms
-🔐 RPC Request
-Key type: colony
-Body: {
-  "msgtype": "getprocessesmsg",
-  "colonyname": "cop-pilot",
-  "count": 100,
-  "state": 1
-} colony.ts:72:17
-✅ RPC Response received in 864.00ms
-🔐 RPC Request
-Key type: colony
-Body: {
-  "msgtype": "getprocessesmsg",
-  "colonyname": "cop-pilot",
-  "count": 100,
-  "state": 0
-}
-```
 This was created with Claude code
 
 ## Images
@@ -50,49 +19,42 @@ This was created with Claude code
 
 ## Running
 
-### Prerequisites
+### Docker container
 
-- Node.js (v18 or later)
-- npm, pnpm, or yarn
+Build container image with
 
-### Development
+```bash
+make container
+```
 
-1. **Install dependencies:**
+Source the required env vars
 
-   ```bash
-   npm install
-   ```
+``` bash
+# Backend Configuration
+COLONY_BACKEND_HOST=host.docker.internal
+COLONY_BACKEND_PORT=50080
+COLONY_BACKEND_TLS=false
 
-2. **Configure environment variables:**
-   Create a `.env` file with your Colony server configuration. **Note:** All environment variables must be prefixed with `VITE_` to be accessible in the client-side code:
+# Colonies Configuration
+COLONIES_COLONY_NAME=your-colony-name
+COLONIES_SERVER_PRVKEY=your-server-private-key
+COLONIES_COLONY_PRVKEY=your-colony-private-key
+COLONIES_PRVKEY=your-user-private-key
 
-   ```env
-   # Colony Server
-   VITE_COLONIES_SERVER_HOST=colony-hostname
-   VITE_COLONIES_SERVER_PORT=443
-   VITE_COLONIES_SERVER_TLS=true
-   VITE_COLONIES_SERVER_PRVKEY=server-private-key
+# S3 Configuration (Optional)
+AWS_S3_ENDPOINT=https://s3.amazonaws.com
+AWS_S3_ACCESSKEY=your-access-key
+AWS_S3_SECRETKEY=your-secret-key
+AWS_S3_REGION=us-east-1
+AWS_S3_BUCKET=your-bucket-name
+AWS_S3_TLS=true
+AWS_S3_SKIPVERIFY=false
+```
 
-   VITE_COLONIES_COLONY_NAME=colony-name
-   VITE_COLONIES_COLONY_PRVKEY=colony-private-key
+Start the container with the compose file
 
-   VITE_COLONIES_PRVKEY=user-private-key
+```bash
+docker compose up -d
+```
 
-   # Optional: S3 Configuration
-   VITE_AWS_S3_ENDPOINT=s3-endpoint
-   VITE_AWS_S3_ACCESSKEY=access-key
-   VITE_AWS_S3_SECRETKEY=secret-key
-   VITE_AWS_S3_REGION=
-   VITE_AWS_S3_BUCKET=bucket-name
-   VITE_AWS_S3_TLS=true
-   VITE_AWS_S3_SKIPVERIFY=false
-   ```
-
-3. **Start the development server:**
-
-   ```bash
-   npm run dev
-   ```
-
-4. **Access the dashboard:**
-   Open [http://localhost:5173](http://localhost:5173) in your browser
+Now you can browse to localhost and you should see the dashboard.

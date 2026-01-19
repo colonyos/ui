@@ -8,9 +8,10 @@
   interface Props {
     executors: Executor[];
     onExecutorClick?: (executor: Executor) => void;
+    loading?: boolean;
   }
 
-  let { executors, onExecutorClick }: Props = $props();
+  let { executors, onExecutorClick, loading = false }: Props = $props();
 
   type SortColumn = "name" | "status" | null;
   type SortDirection = "asc" | "desc";
@@ -73,7 +74,7 @@
   <table class="table-base">
     <thead class="table-header">
       <tr>
-        <th
+        <th scope="col"
           class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500 select-none"
           onclick={() => toggleSort("name")}
         >
@@ -98,7 +99,7 @@
             {/if}
           </div>
         </th>
-        <th
+        <th scope="col"
           class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500 select-none"
           onclick={() => toggleSort("status")}
         >
@@ -123,8 +124,8 @@
             {/if}
           </div>
         </th>
-        <th class="table-header-cell"> Hardware </th>
-        <th class="table-header-cell"> Last Heard </th>
+        <th scope="col" class="table-header-cell"> Hardware </th>
+        <th scope="col" class="table-header-cell"> Last Heard </th>
       </tr>
     </thead>
     <tbody class="table-body">
@@ -199,7 +200,13 @@
   </table>
 
   {#if executors.length === 0}
-    <div class="text-center py-8 text-gray-500">No executors found</div>
+    <div class="table-empty">
+      {#if loading}
+        Loading executors...
+      {:else}
+        No executors found
+      {/if}
+    </div>
   {/if}
 </div>
 

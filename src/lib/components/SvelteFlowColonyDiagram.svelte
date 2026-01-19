@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { SvelteFlow, Background, Controls, type Node, type Edge } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import ServerNode from './flow-nodes/ServerNode.svelte';
@@ -109,7 +108,7 @@
 		buildFlowData();
 	});
 
-	onMount(() => {
+	$effect(() => {
 		buildFlowData();
 	});
 </script>

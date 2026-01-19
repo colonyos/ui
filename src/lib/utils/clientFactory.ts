@@ -1,81 +1,72 @@
-import { ColonyClient, ColonyEndpoint } from '$lib/api/colony';
-import CryptoSingleton from './cryptoSingleton';
+import { ColoniesClientAdapter } from '$lib/api/coloniesClientAdapter';
 import { appState } from '$lib/stores/appState';
 import { envConfig } from '$lib/config/env';
 import { get } from 'svelte/store';
 
+// Type alias for compatibility with existing code
+export type ColonyClient = ColoniesClientAdapter;
+
+/**
+ * Factory for creating and caching Colony API clients with different authentication keys.
+ *
+ * In proxy mode (Docker deployment), host/port/tls are determined automatically from
+ * window.location by the adapter. Clients are cached based on their private key only.
+ */
 class ClientFactory {
-  private static serverClient: ColonyClient | null = null;
-  private static colonyClient: ColonyClient | null = null;
-  private static generalClient: ColonyClient | null = null;
-  private static serverEndpoint: string | null = null;
-  private static colonyEndpoint: string | null = null;
-  private static generalEndpoint: string | null = null;
+  private static serverClient: ColoniesClientAdapter | null = null;
+  private static colonyClient: ColoniesClientAdapter | null = null;
+  private static generalClient: ColoniesClientAdapter | null = null;
+  private static serverKey: string | null = null;
+  private static colonyKey: string | null = null;
+  private static generalKey: string | null = null;
 
-  static async getServerClient(): Promise<ColonyClient> {
+  static async getServerClient(): Promise<ColoniesClientAdapter> {
     const state = get(appState);
-    const host = state.host || envConfig.host;
-    const port = state.port || envConfig.port;
-    const tls = (state.tls || envConfig.tls) === 'true';
     const serverPrivateKey = state.serverPrvKey || envConfig.serverPrvKey;
-    const currentEndpointKey = `${host}:${port}:${tls}:${serverPrivateKey}`;
 
-    if (!ClientFactory.serverClient || ClientFactory.serverEndpoint !== currentEndpointKey) {
-      const crypto = await CryptoSingleton.getInstance();
-      const endpoint = new ColonyEndpoint(host, port);
-      ClientFactory.serverClient = new ColonyClient(endpoint, crypto, tls);
+    // Cache client by private key (host/port/tls no longer relevant in proxy mode)
+    if (!ClientFactory.serverClient || ClientFactory.serverKey !== serverPrivateKey) {
+      ClientFactory.serverClient = new ColoniesClientAdapter();
 
       if (serverPrivateKey) {
         ClientFactory.serverClient.setPrivateKey(serverPrivateKey, 'server');
       }
 
-      ClientFactory.serverEndpoint = currentEndpointKey;
+      ClientFactory.serverKey = serverPrivateKey;
     }
 
     return ClientFactory.serverClient;
   }
 
-  static async getColonyClient(): Promise<ColonyClient> {
+  static async getColonyClient(): Promise<ColoniesClientAdapter> {
     const state = get(appState);
-    const host = state.host || envConfig.host;
-    const port = state.port || envConfig.port;
-    const tls = (state.tls || envConfig.tls) === 'true';
     const colonyPrivateKey = state.colonyPrvKey || envConfig.colonyPrvKey;
-    const currentEndpointKey = `${host}:${port}:${tls}:${colonyPrivateKey}`;
 
-    if (!ClientFactory.colonyClient || ClientFactory.colonyEndpoint !== currentEndpointKey) {
-      const crypto = await CryptoSingleton.getInstance();
-      const endpoint = new ColonyEndpoint(host, port);
-      ClientFactory.colonyClient = new ColonyClient(endpoint, crypto, tls);
+    if (!ClientFactory.colonyClient || ClientFactory.colonyKey !== colonyPrivateKey) {
+      ClientFactory.colonyClient = new ColoniesClientAdapter();
 
       if (colonyPrivateKey) {
         ClientFactory.colonyClient.setPrivateKey(colonyPrivateKey, 'colony');
       }
 
-      ClientFactory.colonyEndpoint = currentEndpointKey;
+      ClientFactory.colonyKey = colonyPrivateKey;
     }
 
     return ClientFactory.colonyClient;
   }
 
-  static async getGeneralClient(): Promise<ColonyClient> {
+  static async getGeneralClient(): Promise<ColoniesClientAdapter> {
     const state = get(appState);
-    const host = state.host || envConfig.host;
-    const port = state.port || envConfig.port;
-    const tls = (state.tls || envConfig.tls) === 'true';
     const generalPrivateKey = state.prvKey || envConfig.prvKey;
-    const currentEndpointKey = `${host}:${port}:${tls}:${generalPrivateKey}`;
 
-    if (!ClientFactory.generalClient || ClientFactory.generalEndpoint !== currentEndpointKey) {
-      const crypto = await CryptoSingleton.getInstance();
-      const endpoint = new ColonyEndpoint(host, port);
-      ClientFactory.generalClient = new ColonyClient(endpoint, crypto, tls);
+    if (!ClientFactory.generalClient || ClientFactory.generalKey !== generalPrivateKey) {
+      ClientFactory.generalClient = new ColoniesClientAdapter();
 
       if (generalPrivateKey) {
         ClientFactory.generalClient.setPrivateKey(generalPrivateKey, 'user');
       }
 
-      ClientFactory.generalEndpoint = currentEndpointKey;
+      ClientFactory.generalKey = generalPrivateKey;
     }
 
     return ClientFactory.generalClient;
@@ -85,10 +76,9 @@ class ClientFactory {
     ClientFactory.serverClient = null;
     ClientFactory.colonyClient = null;
     ClientFactory.generalClient = null;
-    ClientFactory.serverEndpoint = null;
-    ClientFactory.colonyEndpoint = null;
-    ClientFactory.generalEndpoint = null;
-    CryptoSingleton.reset();
+    ClientFactory.serverKey = null;
+    ClientFactory.colonyKey = null;
+    ClientFactory.generalKey = null;
   }
 }
 

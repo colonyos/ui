@@ -5,9 +5,10 @@
 		crons: Cron[];
 		onCronClick?: (cron: Cron) => void;
 		onRunCron?: (cronId: string) => void;
+		loading?: boolean;
 	}
 
-	let { crons, onCronClick, onRunCron }: Props = $props();
+	let { crons, onCronClick, onRunCron, loading = false }: Props = $props();
 
 	// Memoize date formatting functions to avoid recalculation on every render
 	const formatDateMemo = new Map<string, string>();
@@ -101,22 +102,22 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Cron Job
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Schedule
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Next Run
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Last Run
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Initiator
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Actions
 				</th>
 			</tr>
@@ -186,6 +187,12 @@
 	</table>
 
 	{#if crons.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No cron jobs found</div>
+		<div class="table-empty">
+			{#if loading}
+				Loading cron jobs...
+			{:else}
+				No cron jobs found
+			{/if}
+		</div>
 	{/if}
 </div>

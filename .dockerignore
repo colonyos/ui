@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+pnpm-lock.yaml
+
+# Build outputs
+build
+.svelte-kit
+dist
+
+# Development
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.claude
+svelte-docs.txt
+docs
+README.md
+DEPLOYMENT.md

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Process } from '$lib/types/process';
 	import { ColonyClient } from '$lib/api/colony';
-	import { getProcessStateLabel, getProcessStateColor } from '$lib/types/process';
+	import { getProcessStateLabel, getProcessStateColor, ProcessState } from '$lib/types/process';
 
 	interface Props {
 		show: boolean;
@@ -23,6 +23,11 @@
 	let deleteError = $state('');
 	let showDeleteConfirm = $state(false);
 
+	// WebSocket state
+	let wsConnection: WebSocket | null = $state(null);
+	let wsStatus: 'disconnected' | 'connecting' | 'connected' | 'error' = $state('disconnected');
+	let lastUpdateTime = $state<Date | null>(null);
+
 	async function loadProcessDetails() {
 		if (!process || !client) {
 			detailsError = 'Process or client not available';
@@ -42,10 +47,12 @@
 			// The client should be configured with the appropriate key
 			processDetails = await client.getProcess(process.processid);
 
-			console.log('=== getProcess Response ===');
-			console.log('Full response:', JSON.stringify(processDetails, null, 2));
-			console.log('Response type:', typeof processDetails);
-			console.log('Response keys:', Object.keys(processDetails || {}));
+			if (import.meta.env.DEV) {
+				console.log('=== getProcess Response ===');
+				console.log('Full response:', JSON.stringify(processDetails, null, 2));
+				console.log('Response type:', typeof processDetails);
+				console.log('Response keys:', Object.keys(processDetails || {}));
+			}
 
 			// Load logs after getting process details
 			await loadProcessLogs();
@@ -106,10 +113,127 @@
 		}
 	}
 
-	// Load details when modal shows
+	function setupWebSocketSubscription() {
+		if (!process || !client) {
+			return;
+		}
+
+		// Close existing connection if any
+		if (wsConnection) {
+			wsConnection.close();
+			wsConnection = null;
+		}
+
+		const colonyName = process.colonyname || processDetails?.spec?.conditions?.colonyname;
+		if (!colonyName) {
+			console.warn('Cannot setup WebSocket: colony name not available');
+			return;
+		}
+
+		// Don't subscribe if process is already in a terminal state
+		const currentState = processDetails?.state ?? process.state;
+		if (currentState === ProcessState.SUCCESS || currentState === ProcessState.FAILED) {
+			if (import.meta.env.DEV) {
+				console.log('⏹️ Process already in terminal state, skipping WebSocket subscription');
+			}
+			return;
+		}
+
+		wsStatus = 'connecting';
+
+		try {
+			if (import.meta.env.DEV) {
+				console.log('🔌 Setting up WebSocket subscription for process:', process.processid);
+				console.log('Current state:', currentState, 'Subscribing for next state transition');
+			}
+
+			// Subscribe to the next logical state transition
+			// For WAITING (0) -> subscribe to RUNNING (1)
+			// For RUNNING (1) -> subscribe to SUCCESS (2) or FAILED (3)
+			// We'll primarily subscribe to SUCCESS as it's the most common completion state
+			const targetState = currentState === ProcessState.WAITING
+				? ProcessState.RUNNING
+				: ProcessState.SUCCESS;
+
+			wsConnection = client.subscribeProcess(
+				colonyName,
+				process.processid,
+				targetState,
+				3600, // 1 hour timeout
+				(updatedProcess) => {
+					if (import.meta.env.DEV) {
+						console.log('📡 Received real-time process update:', updatedProcess);
+					}
+
+					// Update the process details with the new data
+					processDetails = updatedProcess;
+					lastUpdateTime = new Date();
+
+					// Reload logs if process reached a terminal state
+					if (updatedProcess.state === ProcessState.SUCCESS ||
+					    updatedProcess.state === ProcessState.FAILED) {
+						loadProcessLogs();
+					}
+
+					// If we just transitioned to RUNNING, re-subscribe for completion
+					if (updatedProcess.state === ProcessState.RUNNING && targetState === ProcessState.RUNNING) {
+						setTimeout(() => {
+							setupWebSocketSubscription(); // Re-subscribe for completion
+						}, 100);
+					}
+				},
+				(error) => {
+					console.error('❌ WebSocket subscription error:', error);
+					wsStatus = 'error';
+				},
+				() => {
+					if (import.meta.env.DEV) {
+						console.log('🔌 WebSocket connection closed');
+					}
+					wsStatus = 'disconnected';
+					wsConnection = null;
+				}
+			);
+
+			wsStatus = 'connected';
+
+			if (import.meta.env.DEV) {
+				console.log('✅ WebSocket subscription established for state:', targetState);
+			}
+
+		} catch (error) {
+			console.error('Failed to setup WebSocket:', error);
+			wsStatus = 'error';
+		}
+	}
+
+	function cleanupWebSocket() {
+		if (wsConnection) {
+			if (import.meta.env.DEV) {
+				console.log('🔌 Cleaning up WebSocket connection');
+			}
+			wsConnection.close();
+			wsConnection = null;
+		}
+		wsStatus = 'disconnected';
+	}
+
+	// Load details when modal shows and setup WebSocket
 	$effect(() => {
 		if (show && process) {
-			loadProcessDetails();
+			// Load initial details
+			loadProcessDetails().then(() => {
+				// Setup WebSocket subscription after details are loaded
+				setupWebSocketSubscription();
+			});
+
+			// Cleanup WebSocket when modal closes
+			return () => {
+				cleanupWebSocket();
+			};
+		} else {
+			// Cleanup if modal is hidden
+			cleanupWebSocket();
 		}
 	});
 
@@ -118,8 +242,6 @@
 			onClose();
 		}
 	}
-
-	let deleteTimeoutId: ReturnType<typeof setTimeout> | null = $state(null);
 
 	async function deleteProcess() {
 		if (!process || !client) {
@@ -134,15 +256,7 @@
 		try {
 			await client.removeProcess(process.processid);
 			deletingStatus = 'success';
-
-			// Close modal and notify parent after a short delay
-			deleteTimeoutId = setTimeout(() => {
-				onProcessDeleted?.();
-				onClose();
-				deletingStatus = 'idle';
-				showDeleteConfirm = false;
-				deleteTimeoutId = null;
-			}, 1500);
+			// The timeout is now handled by the $effect below
 		} catch (error) {
 			console.error('Failed to delete process:', error);
 			const errorMessage = error instanceof Error ? error.message : String(error);
@@ -164,14 +278,18 @@
 		}
 	}
 
-	// Cleanup timeout on component destroy or modal close
+	// Effect to handle auto-close after delete success with proper cleanup
 	$effect(() => {
-		return () => {
-			if (deleteTimeoutId) {
-				clearTimeout(deleteTimeoutId);
-				deleteTimeoutId = null;
-			}
-		};
+		if (deletingStatus === 'success') {
+			const timeoutId = setTimeout(() => {
+				onProcessDeleted?.();
+				onClose();
+				deletingStatus = 'idle';
+				showDeleteConfirm = false;
+			}, 1500);
+
+			return () => clearTimeout(timeoutId);
+		}
 	});
 
 	function confirmDelete() {
@@ -251,16 +369,44 @@
 </script>
 
 {#if show}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" tabindex="-1" onclick={handleBackdropClick} onkeydown={(e) => e.key === 'Escape' && onClose()}>
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="process-details-title" tabindex="-1" onclick={handleBackdropClick} onkeydown={(e) => e.key === 'Escape' && onClose()}>
 		<div class="bg-white dark:bg-slate-700 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
 			<!-- Header -->
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-slate-600">
 				<div class="flex justify-between items-start">
-					<div>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Process Details</h3>
+					<div class="flex-1">
+						<div class="flex items-center gap-3">
+							<h3 id="process-details-title" class="text-lg font-semibold text-gray-900 dark:text-white">Process Details</h3>
+
+							<!-- WebSocket Status Indicator -->
+							{#if wsStatus === 'connected'}
+								<span class="flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded-full" title="Real-time updates active">
+									<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+									Live
+								</span>
+							{:else if wsStatus === 'connecting'}
+								<span class="flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 rounded-full" title="Connecting to real-time updates">
+									<span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+									Connecting
+								</span>
+							{:else if wsStatus === 'error'}
+								<span class="flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-full" title="Real-time updates unavailable">
+									<span class="w-2 h-2 bg-red-500 rounded-full"></span>
+									Disconnected
+								</span>
+							{/if}
+						</div>
+
 						{#if process}
 							<p class="text-sm text-gray-600 dark:text-slate-300 mt-1">{process.spec?.funcname || 'Unknown Function'}</p>
-							<p class="text-xs text-gray-400 dark:text-slate-400 font-mono">{process.processid}</p>
+							<div class="flex items-center gap-2 mt-0.5">
+								<p class="text-xs text-gray-400 dark:text-slate-400 font-mono">{process.processid}</p>
+								{#if lastUpdateTime}
+									<span class="text-xs text-gray-400 dark:text-slate-500">
+										• Updated {lastUpdateTime.toLocaleTimeString()}
+									</span>
+								{/if}
+							</div>
 						{/if}
 					</div>
 					<button

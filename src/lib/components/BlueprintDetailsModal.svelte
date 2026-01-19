@@ -179,11 +179,7 @@
 			// Success - refresh the details
 			replicasUpdateSuccess = true;
 			await loadBlueprintDetails();
-
-			// Clear success message after 3 seconds
-			setTimeout(() => {
-				replicasUpdateSuccess = false;
-			}, 3000);
+			// The timeout is now handled by the $effect below
 		} catch (error) {
 			console.error('Failed to update replicas:', error);
 			replicasUpdateError = error instanceof Error ? error.message : String(error);
@@ -191,6 +187,17 @@
 			isUpdatingReplicas = false;
 		}
 	}
+
+	// Effect to clear success message after 3 seconds with proper cleanup
+	$effect(() => {
+		if (replicasUpdateSuccess) {
+			const timeoutId = setTimeout(() => {
+				replicasUpdateSuccess = false;
+			}, 3000);
+
+			return () => clearTimeout(timeoutId);
+		}
+	});
 </script>
 
 {#if show}

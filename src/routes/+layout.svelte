@@ -1,31 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import '../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import ConnectionError from '$lib/components/ConnectionError.svelte';
 	import { appState, appStateActions } from '$lib/stores/appState';
 	import { themeStore } from '$lib/stores/themeStore';
-	import { ColonyEndpoint } from '$lib/api/colony';
 	import ClientFactory from '$lib/utils/clientFactory';
 
 	let { children } = $props();
 
 	// Test connection to colony on mount
 	async function testConnection() {
-		const currentState = $appState;
-
-		if (!currentState.host || !currentState.port) {
-			appStateActions.setConnectionStatus('error', 'Host and port must be configured');
-			return;
-		}
-
 		appStateActions.setConnectionStatus('connecting');
 
 		try {
 			const client = await ClientFactory.getServerClient();
 
-			// Try to get colonies to test connection
-			await client.getColonies();
+			// Test connection with a lightweight call
+			await client.getStatistics();
 			appStateActions.setConnectionStatus('connected');
 		} catch (error) {
 			console.error('Connection test failed:', error);
@@ -35,9 +26,11 @@
 	}
 
 	// Initialize app state on mount
-	onMount(() => {
+	$effect(() => {
 		// Initialize theme
 		themeStore.init();
+
+		let cancelled = false;
 
 		// Subscribe to state changes and persist them
 		const unsubscribe = appState.subscribe((state) => {
@@ -46,14 +39,25 @@
 
 		// Load config and test connection
 		(async () => {
-			// Load config file first, then localStorage overrides
-			await appStateActions.loadFromConfig();
+			try {
+				// Load config file first, then localStorage overrides
+				await appStateActions.loadFromConfig();
 
-			// Test connection after configuration is loaded
-			await testConnection();
+				// Test connection after configuration is loaded (only if not cancelled)
+				if (!cancelled) {
+					await testConnection();
+				}
+			} catch (error) {
+				if (!cancelled) {
+					console.error('Initialization error:', error);
+				}
+			}
 		})();
 
-		return unsubscribe;
+		return () => {
+			cancelled = true;
+			unsubscribe();
+		};
 	});
 </script>
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import FunctionTable from "$lib/components/FunctionTable.svelte";
   import { appState } from "$lib/stores/appState";
   import { envConfig } from "$lib/config/env";
@@ -25,9 +24,11 @@
   let expandedExecutors = $state<Record<string, boolean>>({}); // Track which executors are expanded
   let searchTerm = $state("");
 
-  onMount(async () => {
-    userClient = await ClientFactory.getColonyClient();
-    await loadFunctionData();
+  $effect(() => {
+    (async () => {
+      userClient = await ClientFactory.getColonyClient();
+      await loadFunctionData();
+    })();
   });
 
   async function loadFunctionData() {
@@ -138,75 +139,93 @@
     <h1 class="page-title">Functions</h1>
   </div>
 
-  <!-- Loading/Error States -->
-  {#if loadingStatus === "loading"}
-    <div class="flex items-center justify-center py-4 text-gray-500">
-      <div
-        class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"
-      ></div>
-      Loading function data...
-    </div>
-  {:else if loadingStatus === "error"}
+  <!-- Error State -->
+  {#if loadingStatus === "error"}
     <div
-      class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4"
     >
       <strong>Error:</strong>
       {loadingError}
     </div>
-  {:else}
-    <div class="flex justify-between items-center mb-4">
-      <!-- Search Filter -->
-      <div class="flex items-center gap-2">
+  {/if}
+
+  <!-- Controls (always visible) -->
+  <div class="flex justify-between items-center mb-4">
+    <!-- Search Filter -->
+    <div class="flex items-center gap-2">
+      <svg
+        class="w-5 h-5 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+      <input
+        type="text"
+        bind:value={searchTerm}
+        disabled={loadingStatus === "loading"}
+        placeholder="Filter by function name or ID..."
+        class="w-80 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      {#if searchTerm}
+        <button
+          onclick={() => (searchTerm = "")}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
+          title="Clear filter"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      {/if}
+    </div>
+
+    <!-- Refresh Button -->
+    <button
+      onclick={loadFunctionData}
+      disabled={loadingStatus === "loading"}
+      aria-label="Refresh"
+      class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
+      title="Refresh"
+    >
+      {#if loadingStatus === "loading"}
         <svg
-          class="w-5 h-5 text-gray-400"
+          class="animate-spin h-5 w-5 text-white"
+          xmlns="http://www.w3.org/2000/svg"
           fill="none"
-          stroke="currentColor"
           viewBox="0 0 24 24"
         >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
           <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
+            class="opacity-75"
+            fill="currentColor"
+            d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
         </svg>
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="Filter by function name or ID..."
-          class="w-80 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {#if searchTerm}
-          <button
-            onclick={() => (searchTerm = "")}
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"
-            title="Clear filter"
-          >
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        {/if}
-      </div>
-
-      <!-- Refresh Button -->
-      <button
-        onclick={loadFunctionData}
-        disabled={loadingStatus === "loading"}
-        aria-label="Refresh"
-        class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
-        title="Refresh"
-      >
+      {:else}
         <svg
           class="w-5 h-5"
           fill="none"
@@ -220,63 +239,65 @@
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
           />
         </svg>
-      </button>
-    </div>
+      {/if}
+    </button>
+  </div>
 
-    <!-- Function Tables Grouped by Executor -->
-    {#if Object.entries(groupedFunctions).length === 0}
-      <div class="text-center py-8 text-gray-500 dark:text-slate-300">
-        {#if searchTerm}
-          No functions match the filter "{searchTerm}"
-        {:else}
-          No functions found
+  <!-- Function Tables Grouped by Executor (always visible) -->
+  {#if Object.entries(groupedFunctions).length === 0}
+    <div class="text-center py-8 text-gray-500 dark:text-slate-300">
+      {#if loadingStatus === "loading"}
+        Loading functions...
+      {:else if searchTerm}
+        No functions match the filter "{searchTerm}"
+      {:else}
+        No functions found
+      {/if}
+    </div>
+  {:else}
+    {#each Object.entries(groupedFunctions) as [executorName, functions] (executorName)}
+      <div
+        class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
+      >
+        <button
+          onclick={() => toggleExecutor(executorName)}
+          class="w-full px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-500 transition-colors"
+        >
+          <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+              <svg
+                class="w-5 h-5 text-gray-600 dark:text-slate-300 transition-transform {expandedExecutors[
+                  executorName
+                ]
+                  ? 'rotate-90'
+                  : ''}"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              <h3
+                class="text-lg font-semibold text-gray-900 dark:text-white text-left"
+              >
+                {executorName}
+              </h3>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-slate-400">
+              {functions.length}
+              {functions.length === 1 ? "function" : "functions"}
+            </span>
+          </div>
+        </button>
+        {#if expandedExecutors[executorName]}
+          <FunctionTable {functions} loading={loadingStatus === 'loading'} />
         {/if}
       </div>
-    {:else}
-      {#each Object.entries(groupedFunctions) as [executorName, functions] (executorName)}
-        <div
-          class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 mb-4"
-        >
-          <button
-            onclick={() => toggleExecutor(executorName)}
-            class="w-full px-6 py-4 border-b border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-600 hover:bg-gray-100 dark:hover:bg-slate-500 transition-colors"
-          >
-            <div class="flex justify-between items-center">
-              <div class="flex items-center space-x-2">
-                <svg
-                  class="w-5 h-5 text-gray-600 dark:text-slate-300 transition-transform {expandedExecutors[
-                    executorName
-                  ]
-                    ? 'rotate-90'
-                    : ''}"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-                <h3
-                  class="text-lg font-semibold text-gray-900 dark:text-white text-left"
-                >
-                  {executorName}
-                </h3>
-              </div>
-              <span class="text-sm text-gray-500 dark:text-slate-400">
-                {functions.length}
-                {functions.length === 1 ? "function" : "functions"}
-              </span>
-            </div>
-          </button>
-          {#if expandedExecutors[executorName]}
-            <FunctionTable {functions} />
-          {/if}
-        </div>
-      {/each}
-    {/if}
+    {/each}
   {/if}
 </div>

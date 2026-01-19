@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import ProcessTable from "$lib/components/ProcessTable.svelte";
@@ -10,12 +9,7 @@
   import { envConfig } from "$lib/config/env";
   import { ColonyClient, PROCESS_STATE_NOTSET } from "$lib/api/colony";
   import ClientFactory from "$lib/utils/clientFactory";
-  import CryptoSingleton from "$lib/utils/cryptoSingleton";
 
-  interface Colony {
-    colonyid: string;
-    name: string;
-  }
 
   // Load initial filter state from localStorage
   function getInitialFilterState() {
@@ -39,11 +33,9 @@
 
   let loadingStatus = $state<"idle" | "loading" | "success" | "error">("idle");
   let loadingError = $state("");
-  let colonies = $state<Colony[]>([]);
   let allProcesses = $state<Process[]>([]);
   let selectedState = $state<number | "">(initialState.selectedState);
   let groupByWorkflow = $state(initialState.groupByWorkflow);
-  let serverClient = $state<ColonyClient | null>(null);
   let colonyClient = $state<ColonyClient | null>(null);
   let processClient = $state<ColonyClient | null>(null); // For getProcess calls
   let expandedWorkflows = $state<Record<string, boolean>>({}); // Track which workflows are expanded
@@ -62,9 +54,6 @@
 
   // Submit process modal state
   let showSubmitModal = $state(false);
-
-  // We'll work with the first colony available or a default colony name
-  let targetColony = $state("default-colony");
 
   function handleProcessClick(process: Process) {
     selectedProcess = process;
@@ -120,49 +109,42 @@
     }
   });
 
-  onMount(async () => {
-    serverClient = await ClientFactory.getServerClient();
-    colonyClient = await ClientFactory.getColonyClient();
+  $effect(() => {
+    (async () => {
+      colonyClient = await ClientFactory.getColonyClient();
 
-    // Set up a separate client for getProcess calls with general private key
-    const crypto = await CryptoSingleton.getInstance();
-    const host = $appState.host || envConfig.host;
-    const port = $appState.port || envConfig.port;
-    const tls = ($appState.tls || envConfig.tls) === "true";
-    const endpoint = { host, port };
-    const colonyPrivateKey = $appState.colonyPrvKey || envConfig.colonyPrvKey;
+      // Use GeneralClient for getProcess calls
+      processClient = await ClientFactory.getGeneralClient();
 
-    processClient = new ColonyClient(endpoint, crypto, tls);
-    const generalPrivateKey =
-      $appState.prvKey || envConfig.prvKey || colonyPrivateKey;
-    if (generalPrivateKey) {
-      console.log("Setting up processClient with general private key");
-      processClient.setPrivateKey(generalPrivateKey, "general");
-    } else {
-      console.warn("No general private key available for getProcess calls");
-    }
+      await loadProcessData();
 
-    await loadProcessData();
-
-    // Check if there's a process ID in the URL
-    const urlProcessId = $page.url.searchParams.get('id');
-    if (urlProcessId) {
-      // Try to find the process in the loaded list
-      const process = allProcesses.find(p => p.processid === urlProcessId);
-      if (process) {
-        selectedProcess = process;
-        showProcessModal = true;
-      } else {
-        // Process not in list, create a minimal process object to trigger modal load
-        selectedProcess = { processid: urlProcessId } as Process;
-        showProcessModal = true;
+      // Check if there's a process ID in the URL
+      const urlProcessId = $page.url.searchParams.get('id');
+      if (urlProcessId) {
+        // Try to find the process in the loaded list
+        const process = allProcesses.find(p => p.processid === urlProcessId);
+        if (process) {
+          selectedProcess = process;
+          showProcessModal = true;
+        } else {
+          // Process not in list, create a minimal process object to trigger modal load
+          selectedProcess = { processid: urlProcessId } as Process;
+          showProcessModal = true;
+        }
       }
-    }
+    })();
   });
 
   async function loadProcessData() {
-    if (!serverClient || !colonyClient) {
-      loadingError = "Clients not initialized. Check configuration.";
+    if (!colonyClient) {
+      loadingError = "Colony client not initialized. Check configuration.";
+      loadingStatus = "error";
+      return;
+    }
+
+    const colonyName = envConfig.colonyName;
+    if (!colonyName) {
+      loadingError = "Colony name not configured. Check environment variables.";
       loadingStatus = "error";
       return;
     }
@@ -172,42 +154,27 @@
     allProcesses = [];
 
     try {
-      const coloniesResult = await serverClient.getColonies();
-      if (Array.isArray(coloniesResult)) {
-        colonies = coloniesResult;
-
-        // Set target colony to the first available colony
-        if (colonies.length > 0) {
-          targetColony = colonies[0].name;
+      // Load processes for all states in parallel
+      const processPromises = stateOptions.map(async (stateOption) => {
+        try {
+          const processes = await colonyClient!.getProcesses(
+            colonyName,
+            100,
+            stateOption.value,
+          );
+          return Array.isArray(processes) ? processes : [];
+        } catch (error) {
+          console.warn(
+            `Failed to get processes for ${colonyName} state ${stateOption.label}:`,
+            error,
+          );
+          return [];
         }
+      });
 
-        // Load processes for each colony and each state
-        const processPromises = colonies.flatMap((colony) =>
-          stateOptions.map(async (stateOption) => {
-            try {
-              const processes = await colonyClient!.getProcesses(
-                colony.name,
-                100,
-                stateOption.value,
-              );
-              return Array.isArray(processes) ? processes : [];
-            } catch (error) {
-              console.warn(
-                `Failed to get processes for ${colony.name} state ${stateOption.label}:`,
-                error,
-              );
-              return [];
-            }
-          }),
-        );
-
-        const processArrays = await Promise.all(processPromises);
-        allProcesses = processArrays.flat();
-        loadingStatus = "success";
-      } else {
-        loadingError = "Failed to load colonies";
-        loadingStatus = "error";
-      }
+      const processArrays = await Promise.all(processPromises);
+      allProcesses = processArrays.flat();
+      loadingStatus = "success";
     } catch (error) {
       console.error("Failed to load process data:", error);
       loadingError = error instanceof Error ? error.message : String(error);
@@ -244,16 +211,27 @@
   // Initialize expanded state for new workflows using $effect
   $effect(() => {
     if (groupByWorkflow) {
+      const newExpanded = { ...expandedWorkflows };
+      let hasChanges = false;
+
       Object.keys(groupedProcesses).forEach((workflowId) => {
-        if (!(workflowId in expandedWorkflows)) {
-          expandedWorkflows[workflowId] = true;
+        if (!(workflowId in newExpanded)) {
+          newExpanded[workflowId] = true;
+          hasChanges = true;
         }
       });
+
+      if (hasChanges) {
+        expandedWorkflows = newExpanded;
+      }
     }
   });
 
   function toggleWorkflow(workflowId: string) {
-    expandedWorkflows[workflowId] = !expandedWorkflows[workflowId];
+    expandedWorkflows = {
+      ...expandedWorkflows,
+      [workflowId]: !expandedWorkflows[workflowId]
+    };
   }
 
   // Calculate workflow status
@@ -308,11 +286,12 @@
       const targetState =
         removeState !== "" ? Number(removeState) : PROCESS_STATE_NOTSET;
 
-      if (!targetColony) {
-        throw new Error("No colony available for removal");
+      const colonyName = envConfig.colonyName;
+      if (!colonyName) {
+        throw new Error("Colony name not configured");
       }
 
-      await colonyClient.removeAllProcesses(targetColony, targetState);
+      await colonyClient.removeAllProcesses(colonyName, targetState);
 
       removingStatus = "success";
       const timeoutId = setTimeout(() => {
@@ -330,7 +309,7 @@
   }
 
   function getRemovalDescription(): string {
-    const colony = targetColony || "current colony";
+    const colony = envConfig.colonyName || "current colony";
     const state =
       removeState !== ""
         ? stateOptions.find((s) => s.value === Number(removeState))?.label ||
@@ -414,29 +393,45 @@
           class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white p-2 rounded transition-colors"
           title="Refresh"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          {#if loadingStatus === "loading"}
+            <svg
+              class="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          {:else}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          {/if}
         </button>
       </div>
     </div>
 
-    <!-- Loading/Error States -->
-    {#if loadingStatus === "loading"}
-      <div class="flex items-center justify-center py-4 text-gray-500">
-        <div
-          class="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-2"
-        ></div>
-        Loading process data...
-      </div>
-    {:else if loadingStatus === "error"}
+    <!-- Error State -->
+    {#if loadingStatus === "error"}
       <div
-        class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4"
+        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded mb-4"
       >
         <strong>Error:</strong>
         {loadingError}
       </div>
-    {:else}
+    {/if}
       <!-- Statistics -->
       <div class="flex space-x-4 text-sm mb-4">
         <button
@@ -516,7 +511,11 @@
       {#if groupByWorkflow}
         {#if Object.entries(groupedProcesses).length === 0}
           <div class="text-center py-8 text-gray-500 dark:text-slate-300">
-            No processes found
+            {#if loadingStatus === "loading"}
+              Loading processes...
+            {:else}
+              No processes found
+            {/if}
           </div>
         {:else}
           {#each Object.entries(groupedProcesses) as [workflowId, processes]}
@@ -613,7 +612,7 @@
                 </div>
               </button>
               {#if expandedWorkflows[workflowId]}
-                <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} />
+                <ProcessTable {processes} onProcessClick={handleProcessClick} hideWorkflowColumn={true} loading={loadingStatus === 'loading'} />
               {/if}
             </div>
           {/each}
@@ -622,9 +621,9 @@
         <ProcessTable
           processes={filteredProcesses}
           onProcessClick={handleProcessClick}
+          loading={loadingStatus === 'loading'}
         />
       {/if}
-    {/if}
   </div>
 </div>
 

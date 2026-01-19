@@ -68,19 +68,26 @@
       await client.addBlueprintDefinition(blueprintDefinitionSpec);
 
       submitStatus = "success";
-
-      // Wait a bit to show success message, then close and refresh
-      setTimeout(() => {
-        onBlueprintAdded?.();
-        resetForm();
-        onClose();
-      }, 1500);
+      // The timeout is now handled by the $effect below
     } catch (error) {
       console.error("Failed to add blueprint definition:", error);
       submitError = error instanceof Error ? error.message : String(error);
       submitStatus = "error";
     }
   }
+
+  // Effect to handle auto-close after success with proper cleanup
+  $effect(() => {
+    if (submitStatus === 'success') {
+      const timeoutId = setTimeout(() => {
+        onBlueprintAdded?.();
+        resetForm();
+        onClose();
+      }, 1500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  });
 
   function handleClose() {
     resetForm();

@@ -5,31 +5,32 @@
 	interface Props {
 		workflows: Workflow[];
 		onWorkflowClick?: (workflow: Workflow) => void;
+		loading?: boolean;
 	}
 
-	let { workflows, onWorkflowClick }: Props = $props();
+	let { workflows, onWorkflowClick, loading = false }: Props = $props();
 </script>
 
 <div class="table-container">
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Workflow
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					State
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Initiator
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Submitted
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Duration
 				</th>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Processes
 				</th>
 			</tr>
@@ -76,6 +77,12 @@
 	</table>
 
 	{#if workflows.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-slate-300">No workflows found</div>
+		<div class="table-empty">
+			{#if loading}
+				Loading workflows...
+			{:else}
+				No workflows found
+			{/if}
+		</div>
 	{/if}
 </div>

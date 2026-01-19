@@ -76,15 +76,15 @@ export function getProcessStateLabel(state: number): string {
 export function getProcessStateColor(state: number): string {
 	switch (state) {
 		case ProcessState.WAITING:
-			return 'text-yellow-600 bg-yellow-100';
+			return 'text-yellow-600 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30';
 		case ProcessState.RUNNING:
-			return 'text-blue-600 bg-blue-100';
+			return 'text-blue-600 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30';
 		case ProcessState.SUCCESS:
-			return 'text-green-600 bg-green-100';
+			return 'text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/30';
 		case ProcessState.FAILED:
-			return 'text-red-600 bg-red-100';
+			return 'text-red-600 bg-red-100 dark:text-red-300 dark:bg-red-900/30';
 		default:
-			return 'text-gray-600 bg-gray-100';
+			return 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30';
 	}
 }
 

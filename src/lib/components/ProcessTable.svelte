@@ -7,9 +7,10 @@
 		processes: Process[];
 		onProcessClick?: (process: Process) => void;
 		hideWorkflowColumn?: boolean;
+		loading?: boolean;
 	}
 
-	let { processes, onProcessClick, hideWorkflowColumn = false }: Props = $props();
+	let { processes, onProcessClick, hideWorkflowColumn = false, loading = false }: Props = $props();
 
 	type SortField = 'status' | 'function' | 'executor' | 'initiator' | 'deadline' | 'duration' | 'workflow' | null;
 	type SortDirection = 'asc' | 'desc';
@@ -212,47 +213,47 @@
 	<table class="table-base">
 		<thead class="table-header">
 			<tr>
-				<th class="table-header-cell">
+				<th scope="col" class="table-header-cell">
 					Process ID
 				</th>
-				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('status')}>
+				<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('status')}>
 					<div class="flex items-center justify-between">
 						<span>Status</span>
 						{@render sortIcon('status')}
 					</div>
 				</th>
-				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('function')}>
+				<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('function')}>
 					<div class="flex items-center justify-between">
 						<span>Function</span>
 						{@render sortIcon('function')}
 					</div>
 				</th>
-				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('executor')}>
+				<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('executor')}>
 					<div class="flex items-center justify-between">
 						<span>Executor</span>
 						{@render sortIcon('executor')}
 					</div>
 				</th>
-				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('initiator')}>
+				<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('initiator')}>
 					<div class="flex items-center justify-between">
 						<span>Initiator</span>
 						{@render sortIcon('initiator')}
 					</div>
 				</th>
-				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('deadline')}>
+				<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('deadline')}>
 					<div class="flex items-center justify-between">
 						<span>Deadline</span>
 						{@render sortIcon('deadline')}
 					</div>
 				</th>
-				<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('duration')}>
+				<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('duration')}>
 					<div class="flex items-center justify-between">
 						<span>Duration</span>
 						{@render sortIcon('duration')}
 					</div>
 				</th>
 				{#if !hideWorkflowColumn}
-					<th class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('workflow')}>
+					<th scope="col" class="table-header-cell cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-500" onclick={() => handleSort('workflow')}>
 						<div class="flex items-center justify-between">
 							<span>Workflow</span>
 							{@render sortIcon('workflow')}
@@ -262,7 +263,7 @@
 			</tr>
 		</thead>
 		<tbody class="table-body">
-			{#each sortedProcesses as process}
+			{#each sortedProcesses as process (process.processid)}
 				{@const deadlineStatus = getDeadlineStatus(process.execdeadline, process.state)}
 				<tr class="table-row" class:cursor-pointer={onProcessClick} onclick={() => onProcessClick?.(process)}>
 					<!-- Process ID -->
@@ -378,6 +379,12 @@
 	</table>
 
 	{#if sortedProcesses.length === 0}
-		<div class="table-empty">No processes found</div>
+		<div class="table-empty">
+			{#if loading}
+				Loading processes...
+			{:else}
+				No processes found
+			{/if}
+		</div>
 	{/if}
 </div>

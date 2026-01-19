@@ -108,13 +108,7 @@
       await client.addCron(cronSpec);
 
       submitStatus = "success";
-
-      // Wait a bit to show success message, then close and refresh
-      setTimeout(() => {
-        onCronAdded?.();
-        resetForm();
-        onClose();
-      }, 1500);
+      // The timeout is now handled by the $effect below
     } catch (error) {
       console.error("Failed to add cron:", error);
       if (error instanceof SyntaxError) {
@@ -125,6 +119,19 @@
       submitStatus = "error";
     }
   }
+
+  // Effect to handle auto-close after success with proper cleanup
+  $effect(() => {
+    if (submitStatus === 'success') {
+      const timeoutId = setTimeout(() => {
+        onCronAdded?.();
+        resetForm();
+        onClose();
+      }, 1500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  });
 
   function handleClose() {
     resetForm();
